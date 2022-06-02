@@ -42,3 +42,4 @@ vignettes/*.pdf
 # Other files
 *.Rproj
 .Rbuildignore
+.DS_Store
