@@ -103,22 +103,6 @@ calculate_molform <- function(Proteoform,
     if (StringTest) {Modifications <- c(Modifications, Mod)} else {MassChanges <- c(MassChanges, as.numeric(Mod))}
   }
 
-  # Make sure the modification is in our library
-  Library <- list(
-    "Acetyl" = list(MassChange = 42.010565, Formula = pspecterlib::make_molecule(list("H" = 2, "C" = 2, "O" = 1))),
-    "Carbamyl" = list(MassChange = 43.005814, Formula = pspecterlib::make_molecule(list("H" = 1, "C" = 1, "O" = 1, "N" = 1))),
-    "CTrmAmid" = list(MassChange = -0.984016, Formula = pspecterlib::make_molecule(list("N" = 1, "H" = 1, "O" = -1))),
-    "Deamide" = list(MassChange = 0.984016, Formula = pspecterlib::make_molecule(list("H" = -1, "N" = -1, "O" = 1))),
-    "Dimethyl" = list(MassChange = 28.0313, Formula = pspecterlib::make_molecule(list("H" = 4, "C" = 2))),
-    "DiMethyl" = list(MassChange = 28.0313, Formula = pspecterlib::make_molecule(list("H" = 4, "C" = 2))),
-    "IronAdduct" = list(MassChange = 52.911464, Formula = pspecterlib::make_molecule(list("H" = -2, "Fe" = 1))),
-    "Methyl" = list(MassChange = 14.015650, Formula = pspecterlib::make_molecule(list("H" = 2, "C" = 1))),
-    "NH3_Loss" =  list(MassChange = -17.026549, Formula = pspecterlib::make_molecule(list("H" = -3, "N" = -1))),
-    "Phosph" = list(MassChange = 79.966331, Formula = pspecterlib::make_molecule(list("H" = 1, "O" = 3, "P" = 1))),
-    "Plus1Oxy" = list(MassChange = 15.994915, Formula = pspecterlib::make_molecule(list("O" = 1))),
-    "Plus2Oxy" = list(MassChange = 31.989829, Formula = pspecterlib::make_molecule(list("O" = 2)))
-  )
-
   if (!is.null(Modifications)) {
     if (all(Modifications %in% names(Library)) == FALSE) {
       stop(paste("Modification", Modifications, "is not in our library."))
