@@ -21,8 +21,8 @@ calculate_molform(
 \item{ProtonMass}{The AMU mass of a proton. Default is 1.00727647.}
 }
 \value{
-A list containing the molecular formula, mass shift, monoisotopic mass,
-and most abundant isotope
+A data.table containing the molecular formula, mass shift, monoisotopic
+mass, most abundant isotope, protein, charge, and proteoform.
 }
 \description{
 Returns the "ProteoMatch_molform" object with each proteoform's
@@ -41,7 +41,29 @@ Most Abundant Isotope \tab The proteoform's most abundant isotope based on molec
 \tab \cr
 Protein \tab The provided protein identifier \cr
 \tab \cr
+Charge \tab The provided charges \cr
+\tab \cr
 Proteoform \tab The provided proteoform \cr
 \tab \cr
 }
+}
+\examples{
+\dontrun{
+
+# Run one example with three charge states
+calculate_molform(
+   Proteoform = "M.(S)[Acetyl]ATNNIAQARKLVEQLRIEAGIERIKVSKAASDLMSYCEQHARNDPLLVGVPASENPFKDK(KPCIIL)[-52.9879].",
+   Protein = "O60262",
+   Charge = 1:3
+)
+
+# Run two examples with two charge states
+calculate_molform(
+   Proteoform = c("M.SS[Methyl]S.V", "M.S[Methyl]S[22]S[23].V"),
+   Protein = NULL,
+   Charge = 1:2
+)
+
+}
+
 }
