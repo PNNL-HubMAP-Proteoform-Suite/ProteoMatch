@@ -12,6 +12,7 @@
 #'     to be matched. Default is 0.1, which means 0.1%.
 #' @param PPMThreshold The maximum m/z error permitted. Default is 10 ppm.
 #' @param MaxIsotopes The maximum number of isotopes to consider. Default is 30.
+#' @param ProtonMass The AMU mass of a proton. Default is 1.00727647.
 #'
 #' @details
 #' The data.table outputted by this function contains 12 columns
@@ -40,6 +41,8 @@
 #' \tab \cr
 #' Proteoform \tab The provided proteoform \cr
 #' \tab \cr
+#' ID \tab A unique ID for each Proteoform, Protein, and Charge combination used in plotting functions \cr
+#' \tab \cr
 #' }
 #'
 #' @returns A ProteoMatch_MatchedPeaks object, which is a data.table containing the
@@ -59,8 +62,8 @@
 #'
 #' # Generate some experimental peak data to match
 #' PeakData <- pspecterlib::make_peak_data(
-#'    MZ = c(294.1251, 295.1272, 296.1296, 297.1317),
-#'    Intensity = c(110.9432, 18.71792, 1.787163, 0.170129)
+#'    MZ = c(294.1296, 295.1325, 296.1343, 297.1369, 298.1390),
+#'    Intensity = c(868.3680036, 110.9431876, 18.7179196, 1.7871629, 0.1701294)
 #' )
 #'
 #' # Run algorithm
@@ -73,10 +76,11 @@
 #'
 #' @export
 match_proteoform_to_ms1 <- function(PeakData,
-                                    MolecularFormula,
+                                    MolecularFormulas,
                                     IsotopicPercentage = 1,
                                     PPMThreshold = 10,
-                                    MaxIsotopes = 20) {
+                                    MaxIsotopes = 20,
+                                    ProtonMass = 1.00727647) {
 
   ##################
   ## CHECK INPUTS ##
@@ -93,8 +97,8 @@ match_proteoform_to_ms1 <- function(PeakData,
   }
 
   # Check that molecular formula is a string
-  if (inherits(MolecularFormula, "ProteoMatch_MolForm")) {
-    stop("MolecularFormula must be a string.")
+  if (inherits(MolecularFormulas, "ProteoMatch_MolForm") == FALSE) {
+    stop("MolecularFormula must be a ProteoMatch_MolForm object.")
   }
 
   # Check that max isotope is a numeric
@@ -134,8 +138,6 @@ match_proteoform_to_ms1 <- function(PeakData,
     ########################
     ## CALCULATE ISOTOPES ##
     ########################
-
-    browser()
 
     # Get Isotopes
     Isotopes <- Rdisop::getMolecule(formula = MolForm, maxisotopes = MaxIsotopes)
@@ -188,13 +190,13 @@ match_proteoform_to_ms1 <- function(PeakData,
 
     # Subset down to numbers that are within 1 place of each other
     CloseValues <- IsoDist %>%
-      select(Isotope) %>%
-      mutate(
-        Order = Isotope - lag(Isotope),
+      dplyr::select(Isotope) %>%
+      dplyr::mutate(
+        Order = Isotope - dplyr::lag(Isotope),
         Order = ifelse(is.na(Order), 1, Order),
-        Take = Order == lag(Order) & Order == 1,
+        Take = Order == dplyr::lag(Order) & Order == 1,
         Take = ifelse(is.na(Take), TRUE, Take),
-        Take = ifelse(Take == TRUE, ifelse(lag(Take) == FALSE, FALSE, TRUE), Take),
+        Take = ifelse(Take == TRUE, ifelse(dplyr::lag(Take) == FALSE, FALSE, TRUE), Take),
         Take = ifelse(is.na(Take) & Isotope == 0, TRUE, Take)
       )
 
@@ -228,7 +230,7 @@ match_proteoform_to_ms1 <- function(PeakData,
     IsoDist$Intensity <- IsoDist$Intensity * max(PeakData$Intensity)
 
     # Add correlation score
-    if (nrow(IsoDist) > 3) {
+    if (nrow(IsoDist) >= 3) {
 
       # Return NULL if there is not at least a 50 between min and max peak
       if (max(IsoDist$`Intensity Experimental`) - min(IsoDist$`Intensity Experimental`) < 50) {
@@ -238,29 +240,49 @@ match_proteoform_to_ms1 <- function(PeakData,
       IsoDist$AbsRelError <- 1/nrow(IsoDist) * sum(abs(IsoDist$Intensity - IsoDist$`Intensity Experimental`) / IsoDist$Intensity)
       IsoDist$Correlation <- lsa::cosine(IsoDist$`Intensity Experimental`, IsoDist$Intensity * 1000)[1,1]
 
+      # Add missing columns and reorder
+      IsoDist <- IsoDist %>%
+        dplyr::mutate(
+          Protein = Protein,
+          `Absolute Relative Error` = AbsRelError,
+          Charge = Charge,
+          Proteoform = Proteoform
+        ) %>%
+        dplyr::select(-c(`Intensity Diff`, Flag, AbsRelError)) %>%
+        dplyr::select(
+          Protein, `M/Z`, Intensity, Isotope, `M/Z Tolerance`, `M/Z Experimental`,
+          `Intensity Experimental`, `PPM Error`, `Absolute Relative Error`,
+          Correlation, Charge, Proteoform
+        ) %>%
+        dplyr::mutate(ID = uuid::UUIDgenerate())
+
+      return(IsoDist)
+
     } else {return(NULL)}
-
-    ##########################
-    ## RETURN MATCHED PEAKS ##
-    ##########################
-
-    return(IsoDist)
 
   }
 
   # Iterate through molecular formulas
-  for (el in 1:nrow(MolecularFormulas)) {
+  AllMatches <- do.call(rbind, lapply(1:nrow(MolecularFormulas), function(el) {
     .match_proteoform_to_ms1_iterator(
       PeakData = PeakData,
-      MolForm = MolecularFormula$`Molecular Formula`[el] %>% unlist(),
-      MassShift = MolecularFormula$`Mass Shift`[el] %>% unlist(),
-      Charge = MolecularFormula$Charge[el] %>% unlist(),
-      Protein = MolecularFormula$Protein[el] %>% unlist(),
-      Proteoform = MoleculFormula$Proteoform[el] %>% unlist(),
+      MolForm = MolecularFormulas$`Molecular Formula`[el] %>% unlist(),
+      MassShift = MolecularFormulas$`Mass Shift`[el] %>% unlist(),
+      Charge = MolecularFormulas$Charge[el] %>% unlist(),
+      Protein = MolecularFormulas$Protein[el] %>% unlist(),
+      Proteoform = MolecularFormulas$Proteoform[el] %>% unlist(),
       IsotopicPercentage = IsotopicPercentage,
       PPMThreshold = PPMThreshold,
       MaxIsotopes = MaxIsotopes
     )
-  }
+  }))
+
+  # Simplify unique ID
+  AllMatches$ID <- as.numeric(as.factor(AllMatches$ID))
+
+  # Add class, and return object
+  class(AllMatches) <- c(class(AllMatches), "ProteoMatch_MatchedPeaks")
+
+  return(AllMatches)
 
 }
