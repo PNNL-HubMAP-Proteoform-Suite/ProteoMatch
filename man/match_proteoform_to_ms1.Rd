@@ -14,7 +14,7 @@ match_proteoform_to_ms1(
 }
 \arguments{
 \item{PeakData}{A pspecterlib peak_data object made with "make_peak_data" or
-extracted from an mzML file with "get_peak_data." Use centroided data. Required.}
+extracted from a raw or mzML file with "get_peak_data." Use centroided data. Required.}
 
 \item{MolecularFormula}{A "ProteoMatch_MolForm" object with Molecular Formulas,
 Mass Shifts, and Charges.}
@@ -65,4 +65,29 @@ Charge \tab The provided charges \cr
 Proteoform \tab The provided proteoform \cr
 \tab \cr
 }
+}
+\examples{
+\dontrun{
+
+# Run two examples with two charge states
+MolForms_Test <- calculate_molform(
+   Proteoform = c("M.SS[Methyl]S.V", "M.SS[22]S[23].V"),
+   Protein = c("Test1", "Test2"),
+   Charge = 1:2
+)
+
+# Generate some experimental peak data to match
+PeakData <- pspecterlib::make_peak_data(
+   MZ = c(294.1251, 295.1272, 296.1296, 297.1317),
+   Intensity = c(110.9432, 18.71792, 1.787163, 0.170129)
+)
+
+# Run algorithm
+match_proteoform_to_ms1(
+   PeakData = PeakData,
+   MolecularFormula = MolForms_Test,
+)
+
+}
+
 }

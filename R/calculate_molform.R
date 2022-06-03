@@ -183,7 +183,7 @@ calculate_molform <- function(Proteoform,
       for (PTM in Modifications) {
 
         # Extract formula
-        MolForm <- Glossary[grepl(PTM, Glossary$Modification, ignore.case = TRUE), c(1,4:ncol(Glossary))] %>%
+        MolForm <- Glossary[Glossary$Modification == PTM, c(1,4:ncol(Glossary))] %>%
           tidyr::pivot_longer(colnames(Glossary)[4:ncol(Glossary)]) %>%
           dplyr::filter(!is.na(value))
         AtomList <- MolForm$value
@@ -230,7 +230,7 @@ calculate_molform <- function(Proteoform,
 
   }
 
-  # Iterate through vectors
+  # Iterate through proteoforms
   All_MolForms <- do.call(rbind, lapply(1:length(Proteoform), function(el) {
     .calculate_molform_iterator(Proteoform[el], Protein[el], Charge, ProtonMass)
   })) %>% data.table::data.table()
