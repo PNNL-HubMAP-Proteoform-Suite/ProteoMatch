@@ -88,12 +88,7 @@ match_proteoform_to_ms1 <- function(PeakData,
 
   # Check that peak data is of the appropriate class
   if ("peak_data" %in% class(PeakData) == FALSE) {
-
-    # And if not, is a data.table with M/Z and Intensity
-    if (colnames(PeakData)[1] != "M/Z" | colnames(PeakData)[2] != "Intensity") {
-      stop("PeakData must be of the pspecterlib peak_data class or include two columns: M/Z and Intensity.")
-    }
-
+    stop("PeakData must be a pspecterlib peak_data object.")
   }
 
   # Check that molecular formula is a string

@@ -1,8 +1,18 @@
-#' Matches peaks to isotoping profile, given the molecular formula and any mass changes
+#' Plots the Proteoform Isotope Profile on top of the experimental sequence
+#'
+#' @description Returns a static plot with identified calculated proteoform peaks
+#'     plotted over the experimental spectrum.
 #'
 #' @param PeakData A pspecterlib peak_data object or data.table with "M/Z" and "Intensity". Required.
-#' @param ms1_match A ms1_match class object from match_full_seq_ms1. Required.
-plot_ms1_match <- function(PeakData, ms1_match) {
+#' @param Ms1Match A ProteoMatch_MatchedPeaksclass object from match_full_seq_ms1. Required.
+#' @param ID The ID in the ProteoMatch_MatchedPeaks object to plot. Required.
+#'
+#' @returns A ggplot object
+#'
+#' @export
+plot_ms1_match <- function(PeakData,
+                           Ms1Match,
+                           ID) {
 
   ##################
   ## CHECK INPUTS ##
@@ -10,17 +20,29 @@ plot_ms1_match <- function(PeakData, ms1_match) {
 
   # Check that peak data is of the appropriate class
   if ("peak_data" %in% class(PeakData) == FALSE) {
+    stop("PeakData must be a pspecterlib peak_data object.")
+  }
 
-    # And if not, is a data.table with M/Z and Intensity
-    if (colnames(PeakData)[1] != "M/Z" | colnames(PeakData)[2] != "Intensity") {
-      stop("PeakData must be of the peak_data class or include two columns: M/Z and Intensity.")
-    }
+  # Ms1Match should be a ProteoMatch_MatchedPeaks object
+  if ("ProteoMatch_MatchedPeaks" %in% class(Ms1Match) == FALSE) {
+    stop("Ms1Match must be a ProteoMatch_MatchedPeaks object from match_proteoform_to_ms1")
+  }
 
+  # ID should be length one
+  if (length(ID) != 1) {
+    stop("ID should be of length 1.")
+  }
+
+  # ID must be an acceptable option
+  if (ID %in% Ms1Match$ID == FALSE) {
+    stop(paste(ID, "is not a recognized ID."))
   }
 
   ###################################
   ## MAKE A DATAFRAME FOR PLOTTING ##
   ###################################
+
+  browser()
 
   # Adjust PeakData to be within range
   class(PeakData) <- c("data.table", "data.frame")
