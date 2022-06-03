@@ -21,11 +21,12 @@ calculate_molform(
 \item{ProtonMass}{The AMU mass of a proton. Default is 1.00727647.}
 }
 \value{
-A data.table containing the molecular formula, mass shift, monoisotopic
-mass, most abundant isotope, protein, charge, and proteoform.
+A ProteoMatch_MolForm object, which is a data.table containing the
+molecular formula, mass shift, monoisotopic mass, most abundant isotope,
+protein, charge, and proteoform.
 }
 \description{
-Returns the "ProteoMatch_molform" object with each proteoform's
+Returns the "ProteoMatch_MolForm" object with each proteoform's
 molecular formula and adjusted mass.
 }
 \details{

@@ -1,21 +1,58 @@
-#' Matches peaks to isotoping profile, given the molecular formula and any mass changes
+#' Matches experimental peaks to calculated isotope profile
 #'
-#' @param PeakData A pspecterlib peak_data object or data.table with "M/Z" and "Intensity". Required.
-#' @param MolecularFormula The molecular formula written as string with element, numeric.
-#'     It should include the modifications' molecular formula calculated in calculate_molform. Required.
-#' @param MassShift Any changes to the mass written as a numeric. Default is NULL
-#' @param Charge The charge of the mass. Numeric. Default is 1.
+#' @description Returns the "ProteoMatch_MatchedPeaks" object with peaks that
+#'     have matched to the isotoping profile. This object can be passed to downstream
+#'     plotting functions.
+#'
+#' @param PeakData A pspecterlib peak_data object made with "make_peak_data" or
+#'     extracted from a raw or mzML file with "get_peak_data." Use centroided data. Required.
+#' @param MolecularFormula A "ProteoMatch_MolForm" object with Molecular Formulas,
+#'     Mass Shifts, and Charges.
 #' @param IsotopicPercentage The minimum isotopic percentage (calculated intensity) permitted
 #'     to be matched. Default is 0.1, which means 0.1%.
 #' @param PPMThreshold The maximum m/z error permitted. Default is 10 ppm.
 #' @param MaxIsotopes The maximum number of isotopes to consider. Default is 30.
-match_full_seq_ms1 <- function(PeakData,
-                               MolecularFormula,
-                               MassShift = NULL,
-                               Charge = 1,
-                               IsotopicPercentage = 1,
-                               PPMThreshold = 10,
-                               MaxIsotopes = 20) {
+#'
+#' @details
+#' The data.table outputted by this function contains 12 columns
+#' \tabular{ll}{
+#' Protein \tab The provided protein identifier \cr
+#' \tab \cr
+#' M/Z \tab The calculated M/Z of a particular isotope \cr
+#' \tab \cr
+#' Intensity \tab The calculated relative intensity of a particular isotope \cr
+#' \tab \cr
+#' Isotope \tab The isotope number "n" in M+n \cr
+#' \tab \cr
+#' M/Z Tolerance \tab Given the ppm, the M/Z tolerance is the window in which peaks are searched and matched \cr
+#' \tab \cr
+#' M/Z Experimental \tab The M/Z of the matched from the experimental peaks \cr
+#' \tab \cr
+#' Intensity Experimental \tab The intensity of the matched peak from the experimental peaks \cr
+#' \tab \cr
+#' PPM Error \tab How far off the calculated peak is from the experimental peak. Only peaks within the ppm threshold are kept \cr
+#' \tab \cr
+#' Absolute Relative Error \tab The sum of the absolute relative difference of calculated and experimental peak intensities. \cr
+#' \tab \cr
+#' Correlation \tab The cosine correlation of calculated and experimental peak intensities \cr
+#' \tab \cr
+#' Charge \tab The provided charges \cr
+#' \tab \cr
+#' Proteoform \tab The provided proteoform \cr
+#' \tab \cr
+#' }
+#'
+#' @returns A ProteoMatch_MatchedPeaks object, which is a data.table containing the
+#'     Protein, M/Z, Intensity, Isotope, M/Z Tolerance, Experimental M/Z,
+#'     Experimental Intensity, PPM Error, Absolute Relative Error, Correlation,
+#'     Charge, and Proteoform.
+#'
+#' @export
+match_proteoform_to_ms1 <- function(PeakData,
+                                    MolecularFormula,
+                                    IsotopicPercentage = 1,
+                                    PPMThreshold = 10,
+                                    MaxIsotopes = 20) {
 
   ##################
   ## CHECK INPUTS ##
@@ -26,27 +63,15 @@ match_full_seq_ms1 <- function(PeakData,
 
     # And if not, is a data.table with M/Z and Intensity
     if (colnames(PeakData)[1] != "M/Z" | colnames(PeakData)[2] != "Intensity") {
-      stop("PeakData must be of the peak_data class or include two columns: M/Z and Intensity.")
+      stop("PeakData must be of the pspecterlib peak_data class or include two columns: M/Z and Intensity.")
     }
 
   }
 
   # Check that molecular formula is a string
-  if (!is.character(MolecularFormula)) {
+  if (inherits(MolecularFormula, "ProteoMatch_MolForm")) {
     stop("MolecularFormula must be a string.")
   }
-
-  # Check that MassShift is numeric, if included
-  if (!is.null(MassShift)) {
-    if (!is.numeric(MassShift)) {stop("MassShift must be a number.")}
-  }
-
-  # Check that charge is a numeric
-  if (!is.numeric(Charge)) {
-    stop("Charge must be numeric.")
-  }
-  Charge <- abs(round(Charge))
-  if (Charge == 0) {Charge <- 1}
 
   # Check that max isotope is a numeric
   if (!is.numeric(IsotopicPercentage)) {

@@ -1,6 +1,6 @@
 #' Generate a Molecular Formula Table from proteoforms
 #'
-#' @description Returns the "ProteoMatch_molform" object with each proteoform's
+#' @description Returns the "ProteoMatch_MolForm" object with each proteoform's
 #'     molecular formula and adjusted mass.
 #'
 #' @param Proteoform A vector of strings written in proteoform annotation. i.e. "M.AA`[`Acetyl`]`AA`[`3.2`]`.V"
@@ -27,8 +27,9 @@
 #' \tab \cr
 #' }
 #'
-#' @returns A data.table containing the molecular formula, mass shift, monoisotopic
-#'     mass, most abundant isotope, protein, charge, and proteoform.
+#' @returns A ProteoMatch_MolForm object, which is a data.table containing the
+#'     molecular formula, mass shift, monoisotopic mass, most abundant isotope,
+#'     protein, charge, and proteoform.
 #'
 #' @examples
 #' \dontrun{
@@ -182,7 +183,7 @@ calculate_molform <- function(Proteoform,
       for (PTM in Modifications) {
 
         # Extract formula
-        MolForm <- Glossary[Glossary$Modification == Modifications, c(1,4:ncol(Glossary))] %>%
+        MolForm <- Glossary[grepl(PTM, Glossary$Modification, ignore.case = TRUE), c(1,4:ncol(Glossary))] %>%
           tidyr::pivot_longer(colnames(Glossary)[4:ncol(Glossary)]) %>%
           dplyr::filter(!is.na(value))
         AtomList <- MolForm$value
