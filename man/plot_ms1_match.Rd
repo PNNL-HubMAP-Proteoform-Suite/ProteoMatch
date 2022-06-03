@@ -2,15 +2,50 @@
 % Please edit documentation in R/plot_ms1_match.R
 \name{plot_ms1_match}
 \alias{plot_ms1_match}
-\title{Matches peaks to isotoping profile, given the molecular formula and any mass changes}
+\title{Plots the Proteoform Isotope Profile on top of the experimental sequence}
 \usage{
-plot_ms1_match(PeakData, ms1_match)
+plot_ms1_match(PeakData, Ms1Match, ID)
 }
 \arguments{
 \item{PeakData}{A pspecterlib peak_data object or data.table with "M/Z" and "Intensity". Required.}
 
-\item{ms1_match}{A ms1_match class object from match_full_seq_ms1. Required.}
+\item{Ms1Match}{A ProteoMatch_MatchedPeaksclass object from match_full_seq_ms1. Required.}
+
+\item{ID}{The ID in the ProteoMatch_MatchedPeaks object to plot. Required.}
+}
+\value{
+A ggplot object
 }
 \description{
-Matches peaks to isotoping profile, given the molecular formula and any mass changes
+Returns a static plot with identified calculated proteoform peaks
+plotted over the experimental spectrum.
+}
+\examples{
+\dontrun{
+
+# Run two examples with two charge states
+MolForms_Test <- calculate_molform(
+   Proteoform = c("M.SS[Methyl]S.V", "M.SS[6]S[7].V"),
+   Protein = c("Test1", "Test2"),
+   Charge = 1:2
+)
+
+# Generate some experimental peak data to match
+PeakData <- pspecterlib::make_peak_data(
+   MZ = c(294.1296, 295.1325, 296.1343, 297.1369, 298.1390),
+   Intensity = c(868.3680036, 110.9431876, 18.7179196, 1.7871629, 0.1701294)
+)
+
+# Run algorithm
+AllMatches <- match_proteoform_to_ms1(
+   PeakData = PeakData,
+   MolecularFormula = MolForms_Test,
+)
+
+# Make plot
+plot_ms1_match(PeakData = PeakData, Ms1Match = AllMatches, ID = 1)
+
+
+}
+
 }

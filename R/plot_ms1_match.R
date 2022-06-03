@@ -9,8 +9,36 @@
 #'
 #' @returns A ggplot object
 #'
+#' @examples
+#' \dontrun{
+#'
+#' # Run two examples with two charge states
+#' MolForms_Test <- calculate_molform(
+#'    Proteoform = c("M.SS[Methyl]S.V", "M.SS[6]S[7].V"),
+#'    Protein = c("Test1", "Test2"),
+#'    Charge = 1:2
+#' )
+#'
+#' # Generate some experimental peak data to match
+#' PeakData <- pspecterlib::make_peak_data(
+#'    MZ = c(294.1296, 295.1325, 296.1343, 297.1369, 298.1390),
+#'    Intensity = c(868.3680036, 110.9431876, 18.7179196, 1.7871629, 0.1701294)
+#' )
+#'
+#' # Run algorithm
+#' AllMatches <- match_proteoform_to_ms1(
+#'    PeakData = PeakData,
+#'    MolecularFormula = MolForms_Test,
+#' )
+#'
+#' # Make plot
+#' plot_Ms1Match(PeakData = PeakData, Ms1Match = AllMatches, ID = 1)
+#'
+#'
+#' }
+#'
 #' @export
-plot_ms1_match <- function(PeakData,
+plot_Ms1Match <- function(PeakData,
                            Ms1Match,
                            ID) {
 
@@ -47,19 +75,20 @@ plot_ms1_match <- function(PeakData,
   # Adjust PeakData to be within range
   class(PeakData) <- c("data.table", "data.frame")
   AdjPeakData <- PeakData %>%
-    subset(`M/Z` >= min(ms1_match$`M/Z`) - 1 & `M/Z` <= max(ms1_match$`M/Z`) + 1)
+    subset(`M/Z` >= min(Ms1Match$`M/Z`) - 1 & `M/Z` <= max(Ms1Match$`M/Z`) + 1)
 
   # Fix up ms1 match
   MS1 <- data.table::data.table(
-    `M/Z` = c(ms1_match$`M/Z` - 1e-9, ms1_match$`M/Z`, ms1_match$`M/Z` + 1e-9),
-    Abundance = c(rep(0, nrow(ms1_match)), ms1_match$`Intensity`, rep(0, nrow(ms1_match)))
+    `M/Z` = c(Ms1Match$`M/Z` - 1e-9, Ms1Match$`M/Z`, Ms1Match$`M/Z` + 1e-9),
+    Abundance = c(rep(0, nrow(Ms1Match)), Ms1Match$`Intensity`, rep(0, nrow(Ms1Match)))
   ) %>%
     dplyr::arrange(`M/Z`)
 
   ###############
   ## MAKE PLOT ##
   ###############
-  ggplot(AdjPeakData, aes(x = `M/Z`, y = Intensity)) + geom_line() +
-    geom_line(data = MS1, aes(x = `M/Z`, y = Abundance), color = "red") +
-    theme_bw() + ylab("Abundance")
+  ggplot2::ggplot(AdjPeakData, ggplot2::aes(x = `M/Z`, y = Intensity)) + ggplot2::geom_line() +
+    ggplot2::geom_line(data = MS1, ggplot2::aes(x = `M/Z`, y = Abundance), color = "red") +
+    ggplot2::theme_bw() + ggplot2::ylab("Abundance")
+
 }

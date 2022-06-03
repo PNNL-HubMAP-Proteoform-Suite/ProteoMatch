@@ -6,18 +6,16 @@
 \usage{
 match_proteoform_to_ms1(
   PeakData,
-  MolecularFormula,
+  MolecularFormulas,
   IsotopicPercentage = 1,
   PPMThreshold = 10,
-  MaxIsotopes = 20
+  MaxIsotopes = 20,
+  ProtonMass = 1.00727647
 )
 }
 \arguments{
 \item{PeakData}{A pspecterlib peak_data object made with "make_peak_data" or
 extracted from a raw or mzML file with "get_peak_data." Use centroided data. Required.}
-
-\item{MolecularFormula}{A "ProteoMatch_MolForm" object with Molecular Formulas,
-Mass Shifts, and Charges.}
 
 \item{IsotopicPercentage}{The minimum isotopic percentage (calculated intensity) permitted
 to be matched. Default is 0.1, which means 0.1\%.}
@@ -25,6 +23,11 @@ to be matched. Default is 0.1, which means 0.1\%.}
 \item{PPMThreshold}{The maximum m/z error permitted. Default is 10 ppm.}
 
 \item{MaxIsotopes}{The maximum number of isotopes to consider. Default is 30.}
+
+\item{ProtonMass}{The AMU mass of a proton. Default is 1.00727647.}
+
+\item{MolecularFormula}{A "ProteoMatch_MolForm" object with Molecular Formulas,
+Mass Shifts, and Charges.}
 }
 \value{
 A ProteoMatch_MatchedPeaks object, which is a data.table containing the
@@ -64,6 +67,8 @@ Charge \tab The provided charges \cr
 \tab \cr
 Proteoform \tab The provided proteoform \cr
 \tab \cr
+ID \tab A unique ID for each Proteoform, Protein, and Charge combination used in plotting functions \cr
+\tab \cr
 }
 }
 \examples{
@@ -71,15 +76,15 @@ Proteoform \tab The provided proteoform \cr
 
 # Run two examples with two charge states
 MolForms_Test <- calculate_molform(
-   Proteoform = c("M.SS[Methyl]S.V", "M.SS[22]S[23].V"),
+   Proteoform = c("M.SS[Methyl]S.V", "M.SS[6]S[7].V"),
    Protein = c("Test1", "Test2"),
    Charge = 1:2
 )
 
 # Generate some experimental peak data to match
 PeakData <- pspecterlib::make_peak_data(
-   MZ = c(294.1251, 295.1272, 296.1296, 297.1317),
-   Intensity = c(110.9432, 18.71792, 1.787163, 0.170129)
+   MZ = c(294.1296, 295.1325, 296.1343, 297.1369, 298.1390),
+   Intensity = c(868.3680036, 110.9431876, 18.7179196, 1.7871629, 0.1701294)
 )
 
 # Run algorithm
