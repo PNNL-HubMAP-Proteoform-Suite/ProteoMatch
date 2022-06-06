@@ -4,7 +4,7 @@
 #'     plotted over the experimental spectrum.
 #'
 #' @param PeakData A pspecterlib peak_data object or data.table with "M/Z" and "Intensity". Required.
-#' @param Ms1Match A ProteoMatch_MatchedPeaksclass object from match_full_seq_ms1. Required.
+#' @param Ms1Match A ProteoMatch_MatchedPeaks class object from match_full_seq_ms1. Required.
 #' @param ID The ID in the ProteoMatch_MatchedPeaks object to plot. Required.
 #' @param Window The -/+ m/z value on either side of the matched spectra. Default is 2 m/z.
 #'
@@ -76,8 +76,6 @@ plot_Ms1Match <- function(PeakData,
   ###################################
   ## MAKE A DATAFRAME FOR PLOTTING ##
   ###################################
-
-  browser()
 
   # Change Ms1Match so that it can be used with dplyr functions
   class(PeakData) <- c("data.table", "data.frame")
