@@ -6,6 +6,7 @@
 #' @param PeakData A pspecterlib peak_data object or data.table with "M/Z" and "Intensity". Required.
 #' @param Ms1Match A ProteoMatch_MatchedPeaksclass object from match_full_seq_ms1. Required.
 #' @param ID The ID in the ProteoMatch_MatchedPeaks object to plot. Required.
+#' @param Window The -/+ m/z value on either side of the matched spectra. Default is 2 m/z.
 #'
 #' @returns A ggplot object
 #'
@@ -34,13 +35,13 @@
 #' # Make plot
 #' plot_Ms1Match(PeakData = PeakData, Ms1Match = AllMatches, ID = 1)
 #'
-#'
 #' }
 #'
 #' @export
 plot_Ms1Match <- function(PeakData,
-                           Ms1Match,
-                           ID) {
+                          Ms1Match,
+                          ID,
+                          Window = 2) {
 
   ##################
   ## CHECK INPUTS ##
@@ -66,29 +67,50 @@ plot_Ms1Match <- function(PeakData,
     stop(paste(ID, "is not a recognized ID."))
   }
 
+  # Window must be numeric
+  if (!is.numeric(Window) | length(Window) != 1) {
+    stop("Window must be a single numeric.")
+  }
+  Window <- abs(Window)
+
   ###################################
   ## MAKE A DATAFRAME FOR PLOTTING ##
   ###################################
 
   browser()
 
-  # Adjust PeakData to be within range
+  # Change Ms1Match so that it can be used with dplyr functions
   class(PeakData) <- c("data.table", "data.frame")
-  AdjPeakData <- PeakData %>%
-    subset(`M/Z` >= min(Ms1Match$`M/Z`) - 1 & `M/Z` <= max(Ms1Match$`M/Z`) + 1)
+  class(Ms1Match) <- c("data.table", "data.frame")
 
-  # Fix up ms1 match
+  # Adjust PeakData to be within range, rename intensity to abundance
+  AdjPeakData <- PeakData %>%
+    dplyr::filter(`M/Z` >= min(Ms1Match$`M/Z`) - Window & `M/Z` <= max(Ms1Match$`M/Z`) + Window) %>%
+    dplyr::select(`M/Z`, Intensity) %>%
+    dplyr::rename(Abundance = Intensity) %>%
+    dplyr::mutate(Spectrum = "Experimental")
+
+  # Extract matched peaks
+  MatchedPeaks <- Ms1Match %>% dplyr::filter(ID == ID) %>% dplyr::select(`M/Z Experimental`) %>% unlist()
+
+  # Match calculated peaks
+  AdjPeakData[AdjPeakData$`M/Z` %in% MatchedPeaks, "Spectrum"] <- "Calculated"
+
+  # Zero fill MS1 match
   MS1 <- data.table::data.table(
-    `M/Z` = c(Ms1Match$`M/Z` - 1e-9, Ms1Match$`M/Z`, Ms1Match$`M/Z` + 1e-9),
-    Abundance = c(rep(0, nrow(Ms1Match)), Ms1Match$`Intensity`, rep(0, nrow(Ms1Match)))
+    `M/Z` = c(AdjPeakData$`M/Z` - 1e-9, AdjPeakData$`M/Z`, AdjPeakData$`M/Z` + 1e-9),
+    Abundance = c(rep(0, nrow(AdjPeakData)), AdjPeakData$Abundance, rep(0, nrow(AdjPeakData))),
+    Spectrum = rep(AdjPeakData$Spectrum)
   ) %>%
     dplyr::arrange(`M/Z`)
 
   ###############
   ## MAKE PLOT ##
   ###############
-  ggplot2::ggplot(AdjPeakData, ggplot2::aes(x = `M/Z`, y = Intensity)) + ggplot2::geom_line() +
-    ggplot2::geom_line(data = MS1, ggplot2::aes(x = `M/Z`, y = Abundance), color = "red") +
-    ggplot2::theme_bw() + ggplot2::ylab("Abundance")
+
+  plot <- ggplot2::ggplot(MS1, ggplot2::aes(x = `M/Z`, y = Abundance, color = Spectrum)) +
+    ggplot2::geom_line() + ggplot2::theme_bw() +
+    ggplot2::scale_color_manual(values = c("Calculated" = "red", "Experimental" = "black"))
+  return(plot)
 
 }

@@ -3,5 +3,5 @@
 export("%>%")
 export(calculate_molform)
 export(match_proteoform_to_ms1)
-export(plot_ms1_match)
+export(plot_Ms1Match)
 importFrom(magrittr,"%>%")
