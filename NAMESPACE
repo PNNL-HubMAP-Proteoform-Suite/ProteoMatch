@@ -2,9 +2,9 @@
 
 export("%>%")
 export(.getDownloadsFolder)
-export(build_trelliscope_display)
 export(calculate_molform)
 export(filter_peaks)
 export(match_proteoform_to_ms1)
 export(plot_Ms1Match)
+export(proteomatch_trelliscope)
 importFrom(magrittr,"%>%")

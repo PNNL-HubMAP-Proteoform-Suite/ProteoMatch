@@ -81,6 +81,10 @@ plot_Ms1Match <- function(PeakData,
   class(PeakData) <- c("data.table", "data.frame")
   class(Ms1Match) <- c("data.table", "data.frame")
 
+  # Filter Ms1 Match to the correct subset
+  IDSelection <- ID
+  Ms1Match <- Ms1Match %>% dplyr::filter(ID == IDSelection)
+
   # Adjust PeakData to be within range, rename intensity to abundance
   AdjPeakData <- PeakData %>%
     dplyr::filter(`M/Z` >= min(Ms1Match$`M/Z`) - Window & `M/Z` <= max(Ms1Match$`M/Z`) + Window) %>%
@@ -89,7 +93,7 @@ plot_Ms1Match <- function(PeakData,
     dplyr::mutate(Spectrum = "Experimental")
 
   # Extract matched peaks
-  MatchedPeaks <- Ms1Match %>% dplyr::filter(ID == ID) %>% dplyr::select(`M/Z Experimental`) %>% unlist()
+  MatchedPeaks <- Ms1Match %>% dplyr::select(`M/Z Experimental`) %>% unlist()
 
   # Match calculated peaks
   AdjPeakData[AdjPeakData$`M/Z` %in% MatchedPeaks, "Spectrum"] <- "Calculated"
@@ -106,9 +110,12 @@ plot_Ms1Match <- function(PeakData,
   ## MAKE PLOT ##
   ###############
 
+  # Build base spectrum
   plot <- ggplot2::ggplot(MS1, ggplot2::aes(x = `M/Z`, y = Abundance, color = Spectrum)) +
+    ggplot2::geom_segment(x = min(MS1$`M/Z`), xend = max(MS1$`M/Z`), y = 0, yend = 0, color = "black") +
     ggplot2::geom_line() + ggplot2::theme_bw() +
-    ggplot2::scale_color_manual(values = c("Calculated" = "red", "Experimental" = "black"))
+    ggplot2::scale_color_manual(values = c("Experimental" = "black", "Calculated" = "red"))
+
   return(plot)
 
 }
