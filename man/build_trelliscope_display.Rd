@@ -15,7 +15,7 @@ build_trelliscope_display(
 \arguments{
 \item{PeakData}{A pspecterlib peak_data object or data.table with "M/Z" and "Intensity". Required.}
 
-\item{Ms1Match}{A ProteoMatch_MatchedPeaksclass object from match_full_seq_ms1. Required.}
+\item{Ms1Match}{A ProteoMatch_MatchedPeaks class object from match_full_seq_ms1. Required.}
 
 \item{Path}{The base directory of the trelliscope application. Default is Downloads/Ms1Match.}
 
