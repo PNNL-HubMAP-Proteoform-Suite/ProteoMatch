@@ -6,12 +6,12 @@
 #'
 #' @param PeakData A pspecterlib peak_data object made with "make_peak_data" or
 #'     extracted from a raw or mzML file with "get_peak_data." Use centroided data. Required.
-#' @param MolecularFormula A "ProteoMatch_MolForm" object with Molecular Formulas,
+#' @param MolecularFormulas A "ProteoMatch_MolForm" object with Molecular Formulas,
 #'     Mass Shifts, and Charges.
 #' @param IsotopicPercentage The minimum isotopic percentage (calculated intensity) permitted
-#'     to be matched. Default is 0.1, which means 0.1%.
+#'     to be matched. Default is 1, which is 1%.
 #' @param PPMThreshold The maximum m/z error permitted. Default is 10 ppm.
-#' @param MaxIsotopes The maximum number of isotopes to consider. Default is 30.
+#' @param MaxIsotopes The maximum number of isotopes to consider. Default is 20.
 #' @param ProtonMass The AMU mass of a proton. Default is 1.00727647.
 #'
 #' @details

@@ -17,17 +17,17 @@ match_proteoform_to_ms1(
 \item{PeakData}{A pspecterlib peak_data object made with "make_peak_data" or
 extracted from a raw or mzML file with "get_peak_data." Use centroided data. Required.}
 
+\item{MolecularFormulas}{A "ProteoMatch_MolForm" object with Molecular Formulas,
+Mass Shifts, and Charges.}
+
 \item{IsotopicPercentage}{The minimum isotopic percentage (calculated intensity) permitted
-to be matched. Default is 0.1, which means 0.1\%.}
+to be matched. Default is 1, which is 1\%.}
 
 \item{PPMThreshold}{The maximum m/z error permitted. Default is 10 ppm.}
 
-\item{MaxIsotopes}{The maximum number of isotopes to consider. Default is 30.}
+\item{MaxIsotopes}{The maximum number of isotopes to consider. Default is 20.}
 
 \item{ProtonMass}{The AMU mass of a proton. Default is 1.00727647.}
-
-\item{MolecularFormula}{A "ProteoMatch_MolForm" object with Molecular Formulas,
-Mass Shifts, and Charges.}
 }
 \value{
 A ProteoMatch_MatchedPeaks object, which is a data.table containing the

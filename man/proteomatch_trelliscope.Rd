@@ -19,7 +19,7 @@ proteomatch_trelliscope(
 
 \item{Path}{The base directory of the trelliscope application. Default is Downloads/Ms1Match.}
 
-\item{Window}{The -/+ m/z value on either side of the matched spectra. Default is 2 m/z.}
+\item{Window}{The -/+ m/z value on either side of the matched spectra plot. Default is 2 m/z.}
 }
 \value{
 An html trelliscope display
