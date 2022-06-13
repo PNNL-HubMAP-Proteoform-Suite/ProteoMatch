@@ -49,6 +49,7 @@ run_proteomatch <- function(ProteoformFile,
   if (nrow(mzMLFile) > 1) {
     stop("mzMLFile has more than one scan. This is unexpected.")
   }
+  PeakData <- pspecterlib::get_peak_data(MSData, 1)
 
   # The settings file should have be an xlsx
   if (!grepl(".xlsx", SettingsFile)) {
@@ -57,10 +58,40 @@ run_proteomatch <- function(ProteoformFile,
   Settings <- xlsx::read.xlsx(SettingsFile, 1)
 
   # The settings file should have all the required parameters
-  # Test
+  RequiredRow <- c("MZRange", "NoiseFilter", "Charges", "IsotopicPercentage",
+    "PPMThreshold", "MaxIsotopes", "PlottingWindow", "ProtonMass")
+  if (!all(Settings$Parameter %in% RequiredRow)) {
+    stop("Settings file is missing:",
+         paste0(Settings$Parameter[!Settings$Parameter %in% RequiredRow], ", ", collapse = ""))
+  }
 
   ##################
   ## RUN PIPELINE ##
   ##################
+
+  # 1. Calculate Molecular Formula
+  MolForm <- calculate_molform(
+    Proteoform = Proteoforms$Proteoform,
+    Protein = Proteoforms$Protein,
+    Charge = Settings[Settings$Parameter == "Charges", "Default"] %>% strsplit(",") %>% unlist() %>% as.numeric(),
+    ProtonMass = Settings[Settings$Parameter == "ProtonMass", "Default"] %>% as.numeric()
+  )
+  write.csv(MolForm, file.path(Path, "Molecular_Formulas.csv"))
+
+  # 2. Filter the data
+  FilteredData <- filter_peaks(
+    PeakData = PeakData,
+    MZRange = Settings[Settings$Parameter == "MZRange", "Default"] %>% strsplit("-") %>% unlist() %>% as.numeric(),
+    NoiseFilter = Settings[Settings$Parameter == "NoiseFilter", "Default"] %>% as.numeric()
+  )
+
+  # 3. Match Peaks
+  MatchedPeaks <- match_proteoform_to_ms1(
+    PeakData = FilteredData,
+    MolecularFormulas = MolForm,
+    IsotopicPercentage = Settings[]
+  )
+
+
 
 }
