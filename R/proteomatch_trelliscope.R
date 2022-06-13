@@ -59,7 +59,7 @@
 #' @export
 proteomatch_trelliscope <- function(PeakData,
                                     Ms1Match,
-                                    Path = file.path(.getDownloadsFolder(), "Ms1Match"),
+                                    Path = file.path(.getDownloadsFolder(), "Ms1Match", "Trelliscope"),
                                     Window = 2,
                                     ...) {
 

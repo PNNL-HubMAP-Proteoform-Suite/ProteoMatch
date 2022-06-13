@@ -2,9 +2,14 @@
 % Please edit documentation in R/run_proteomatch.R
 \name{run_proteomatch}
 \alias{run_proteomatch}
-\title{Run the ProteoMatch pipeline with a Proteoform, mzML, Settings, and Defaults File}
+\title{Run the ProteoMatch pipeline with a Proteoform, mzML, and Settings file}
 \usage{
-run_proteomatch(ProteoformFile, mzMLFile, SettingsFile)
+run_proteomatch(
+  ProteoformFile,
+  mzMLFile,
+  SettingsFile,
+  Path = file.path(.getDownloadsFolder(), "Ms1Match")
+)
 }
 \arguments{
 \item{ProteoformFile}{Path to a csv with a column of "Proteoforms" and their "Protein"
@@ -12,9 +17,23 @@ identifier. Each Proteoform-Protein pairing should be unique. Proteoforms
 should be written with proper annotations (i.e. "M.AA\code{[}Acetyl\verb{]}AA\code{[}3.2\verb{]}.V"). Required.}
 
 \item{mzMLFile}{Path to an mzML file containing one spectra. The file must be centroided.
-Use the msconverteR \url{https://github.com/wilsontom/msconverteR} package and
-set}
+Use the \url{https://github.com/wilsontom/msconverteR} package and
+set msconvert_args = 'peakPicking true 1-'. Required.}
+
+\item{SettingsFile}{Path to a text file with all user-set parameters. Required.}
+
+\item{Path}{The base directory of the output trelliscope application. Default is Downloads/Ms1Match.}
 }
 \description{
 A wrapper for quickly running all the steps of the ProteoMatch pipeline
+}
+\details{
+The algorithm is run in 4 main steps:
+\enumerate{
+\item Molecular Formulas are calculated with calculate_molform
+\item Input spectra is filtered with filter_peaks
+\item Isotopic distributions are calculated with the molecular formulas, and matched
+to the filtered spectra
+\item All high scoring matches are visualized with a trelliscope display
+}
 }

@@ -7,7 +7,7 @@
 proteomatch_trelliscope(
   PeakData,
   Ms1Match,
-  Path = file.path(.getDownloadsFolder(), "Ms1Match"),
+  Path = file.path(.getDownloadsFolder(), "Ms1Match", "Trelliscope"),
   Window = 2,
   ...
 )
