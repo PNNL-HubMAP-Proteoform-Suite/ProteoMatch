@@ -29,16 +29,35 @@ run_proteomatch <- function(ProteoformFile,
   #################
 
   # The proteoform file should be a csv
+  if (!grepl(".csv", ProteoformFile)) {
+    stop("ProteoformFile should be a csv.")
+  }
+  Proteoforms <- data.table::fread(ProteoformFile)
 
   # The proteoform file should contain a proteoform and protein
+  if (!all(c("Protein", "Proteoform") %in% colnames(Proteoforms))) {
+    stop("ProteoformFile should have a column labeled 'Protein' and another labeled 'Proteoform'.")
+  }
 
   # The MS data should be an mzML file
+  if (!grepl(".mzML", mzMLFile)) {
+    stop("mzMLFile should be in mzML format.")
+  }
+  MSData <- pspecterlib::get_scan_metadata(mzMLFile)
 
   # The mzML file should have one scan
+  if (nrow(mzMLFile) > 1) {
+    stop("mzMLFile has more than one scan. This is unexpected.")
+  }
 
   # The settings file should have be an xlsx
+  if (!grepl(".xlsx", SettingsFile)) {
+    stop("SettingsFile needs to be an xlsx file.")
+  }
+  Settings <- xlsx::read.xlsx(SettingsFile, 1)
 
   # The settings file should have all the required parameters
+  # Test
 
   ##################
   ## RUN PIPELINE ##
