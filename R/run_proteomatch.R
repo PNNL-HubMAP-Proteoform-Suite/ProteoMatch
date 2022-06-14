@@ -22,7 +22,8 @@
 run_proteomatch <- function(ProteoformFile,
                             mzMLFile,
                             SettingsFile,
-                            Path = file.path(.getDownloadsFolder(), "Ms1Match")) {
+                            Path = file.path(.getDownloadsFolder(), "Ms1Match"),
+                            Messages = TRUE) {
 
   #################
   ## CHECK FILES ##
@@ -46,7 +47,7 @@ run_proteomatch <- function(ProteoformFile,
   MSData <- pspecterlib::get_scan_metadata(mzMLFile)
 
   # The mzML file should have one scan
-  if (nrow(mzMLFile) > 1) {
+  if (nrow(MSData) > 1) {
     stop("mzMLFile has more than one scan. This is unexpected.")
   }
   PeakData <- pspecterlib::get_peak_data(MSData, 1)
@@ -58,8 +59,8 @@ run_proteomatch <- function(ProteoformFile,
   Settings <- xlsx::read.xlsx(SettingsFile, 1)
 
   # The settings file should have all the required parameters
-  RequiredRow <- c("MZRange", "NoiseFilter", "Charges", "IsotopicPercentage",
-    "PPMThreshold", "MaxIsotopes", "PlottingWindow", "ProtonMass")
+  RequiredRow <- c("MZRange", "NoiseFilter", "Charges", "CorrelationMinimum",
+    "IsotopicPercentage","PPMThreshold", "MaxIsotopes", "PlottingWindow", "ProtonMass")
   if (!all(Settings$Parameter %in% RequiredRow)) {
     stop("Settings file is missing:",
          paste0(Settings$Parameter[!Settings$Parameter %in% RequiredRow], ", ", collapse = ""))
@@ -70,28 +71,43 @@ run_proteomatch <- function(ProteoformFile,
   ##################
 
   # 1. Calculate Molecular Formula
+  if (Messages) {message("Calculating molecular formulas...")}
   MolForm <- calculate_molform(
     Proteoform = Proteoforms$Proteoform,
     Protein = Proteoforms$Protein,
     Charge = Settings[Settings$Parameter == "Charges", "Default"] %>% strsplit(",") %>% unlist() %>% as.numeric(),
     ProtonMass = Settings[Settings$Parameter == "ProtonMass", "Default"] %>% as.numeric()
   )
-  write.csv(MolForm, file.path(Path, "Molecular_Formulas.csv"))
+  write.csv(MolForm, file.path(Path, "Molecular_Formulas.csv"), row.names = F, quote = F)
 
   # 2. Filter the data
+  if (Messages) {message("Filtering peaks...")}
   FilteredData <- filter_peaks(
     PeakData = PeakData,
     MZRange = Settings[Settings$Parameter == "MZRange", "Default"] %>% strsplit("-") %>% unlist() %>% as.numeric(),
     NoiseFilter = Settings[Settings$Parameter == "NoiseFilter", "Default"] %>% as.numeric()
   )
+  write.csv(FilteredData, file.path(Path, "Filtered_Peaks.csv"), row.names = F, quote = F)
 
   # 3. Match Peaks
+  if (Messages) {message("Matching spectra...")}
   MatchedPeaks <- match_proteoform_to_ms1(
     PeakData = FilteredData,
     MolecularFormulas = MolForm,
-    IsotopicPercentage = Settings[]
+    IsotopicPercentage = Settings[Settings$Parameter == "IsotopicPercentage", "Default"] %>% as.numeric(),
+    PPMThreshold = Settings[Settings$Parameter == "PPMThreshold", "Default"] %>% as.numeric(),
+    MaxIsotopes = Settings[Settings$Parameter == "MaxIsotopes", "Default"] %>% as.numeric(),
+    ProtonMass = Settings[Settings$Parameter == "ProtonMass", "Default"] %>% as.numeric()
   )
+  write.csv(MatchedPeaks, file.path(Path, "Matched_Isotope_Distributions.csv"), row.names = F, quote = F)
 
-
+  # 4. Make the trelliscope display
+  if (Messages) {message("Generating trelliscope...")}
+  proteomatch_trelliscope(
+    PeakData = FilteredData,
+    Ms1Match = MatchedPeaks,
+    MinCorrelationScore = Settings[Settings$Parameter == "CorrelationMinimum", "Default"] %>% as.numeric(),
+    Window = Settings[Settings$Parameter == "PlottingWindow", "Default"] %>% as.numeric()
+  )
 
 }

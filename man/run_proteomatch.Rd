@@ -8,7 +8,8 @@ run_proteomatch(
   ProteoformFile,
   mzMLFile,
   SettingsFile,
-  Path = file.path(.getDownloadsFolder(), "Ms1Match")
+  Path = file.path(.getDownloadsFolder(), "Ms1Match"),
+  Messages = TRUE
 )
 }
 \arguments{
@@ -17,10 +18,10 @@ identifier. Each Proteoform-Protein pairing should be unique. Proteoforms
 should be written with proper annotations (i.e. "M.AA\code{[}Acetyl\verb{]}AA\code{[}3.2\verb{]}.V"). Required.}
 
 \item{mzMLFile}{Path to an mzML file containing one spectra. The file must be centroided.
-Use the \url{https://github.com/wilsontom/msconverteR} package and
+Use the \href{https://github.com/wilsontom/msconverteR}{msconverteR} package and
 set msconvert_args = 'peakPicking true 1-'. Required.}
 
-\item{SettingsFile}{Path to a text file with all user-set parameters. Required.}
+\item{SettingsFile}{Path to a xlsx file with all user-set parameters. Required.}
 
 \item{Path}{The base directory of the output trelliscope application. Default is Downloads/Ms1Match.}
 }

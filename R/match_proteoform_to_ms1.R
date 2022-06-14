@@ -148,7 +148,7 @@ match_proteoform_to_ms1 <- function(PeakData,
       )
 
     # Add mass change if it is not NULL
-    if (!is.null(MassShift) | MassShift != 0) {
+    if (!is.null(MassShift) & MassShift != 0) {
       IsoDist$`M/Z` <- IsoDist$`M/Z` + (MassShift / Charge)
     }
 
@@ -192,7 +192,7 @@ match_proteoform_to_ms1 <- function(PeakData,
         Take = Order == dplyr::lag(Order) & Order == 1,
         Take = ifelse(is.na(Take), TRUE, Take),
         Take = ifelse(Take == TRUE, ifelse(dplyr::lag(Take) == FALSE, FALSE, TRUE), Take),
-        Take = ifelse(is.na(Take) & Isotope == 0, TRUE, Take)
+        Take = ifelse(is.na(Take), TRUE, Take)
       )
 
 
@@ -226,11 +226,6 @@ match_proteoform_to_ms1 <- function(PeakData,
 
     # Add correlation score
     if (nrow(IsoDist) >= 3) {
-
-      # Return NULL if there is not at least a 50 between min and max peak
-      if (max(IsoDist$`Intensity Experimental`) - min(IsoDist$`Intensity Experimental`) < 50) {
-        return(NULL)
-      }
 
       IsoDist$AbsRelError <- 1/nrow(IsoDist) * sum(abs(IsoDist$Intensity - IsoDist$`Intensity Experimental`) / IsoDist$Intensity)
       IsoDist$Correlation <- lsa::cosine(IsoDist$`Intensity Experimental`, IsoDist$Intensity * 1000)[1,1]

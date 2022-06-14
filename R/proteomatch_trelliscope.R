@@ -22,6 +22,7 @@
 #' @param PeakData A pspecterlib peak_data object or data.table with "M/Z" and "Intensity". Required.
 #' @param Ms1Match A ProteoMatch_MatchedPeaks class object from match_full_seq_ms1. Required.
 #' @param Path The base directory of the trelliscope application. Default is Downloads/Ms1Match.
+#' @param MinCorrelationScore The minimum correlation score to plot. Default is 0.7.
 #' @param Window The -/+ m/z value on either side of the matched spectra plot. Default is 2 m/z.
 #'
 #' @returns An html trelliscope display
@@ -60,8 +61,8 @@
 proteomatch_trelliscope <- function(PeakData,
                                     Ms1Match,
                                     Path = file.path(.getDownloadsFolder(), "Ms1Match", "Trelliscope"),
-                                    Window = 2,
-                                    ...) {
+                                    MinCorrelationScore = 0.7,
+                                    Window = 2) {
 
   ##################
   ## CHECK INPUTS ##
@@ -77,6 +78,15 @@ proteomatch_trelliscope <- function(PeakData,
     stop("Ms1Match must be a ProteoMatch_MatchedPeaks object from match_proteoform_to_ms1")
   }
 
+  # Check that minimum correlation score is within 0-1
+  MinCorrelationScore <- abs(MinCorrelationScore)
+  if (!is.numeric(MinCorrelationScore)) {
+    stop("MinCorrelationScore must be a numeric.")
+  }
+  if (MinCorrelationScore < 0 | MinCorrelationScore > 1) {
+    stop("MinCorrelationScore must be between 0 and 1.")
+  }
+
   # Check the +/- window range
   if (!is.numeric(Window) | length(Window) != 1) {
     stop("Window must be a single numeric.")
@@ -88,8 +98,12 @@ proteomatch_trelliscope <- function(PeakData,
   ##################################
 
   # Convert ProteoMatch class
-  ProteoMatchTrelli <- ProteoMatch
+  ProteoMatchTrelli <- Ms1Match
   class(ProteoMatchTrelli) <- c("data.table", "data.frame")
+
+  # Filter ProteoMatch down to the correlation score
+  ProteoMatchTrelli <- ProteoMatchTrelli %>%
+    dplyr::filter(Correlation >= MinCorrelationScore)
 
   # List relevant ProteoMatch columns
   RelCol <- c("Protein", "Absolute Relative Error", "Correlation", "Charge", "Proteoform", "ID")
@@ -107,14 +121,14 @@ proteomatch_trelliscope <- function(PeakData,
     merge(MedianPPMError, by = "ID") %>%
     unique() %>%
     dplyr::mutate(
-      panel = trelliscopejs::map_plot(ID, function(x) {plot_Ms1Match(PeakData, ProteoMatch, x, Window)})
+      panel = trelliscopejs::map_plot(ID, function(x) {plot_Ms1Match(PeakData, Ms1Match, x, Window)})
     ) %>%
     trelliscopejs::trelliscope(
       path = Path,
       name = "MS1 Matches",
       nrow = 1,
       ncol = 1,
-      thumb = T
+      thumb = T,
     )
 
 }

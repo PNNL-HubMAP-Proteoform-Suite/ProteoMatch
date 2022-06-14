@@ -8,8 +8,8 @@ proteomatch_trelliscope(
   PeakData,
   Ms1Match,
   Path = file.path(.getDownloadsFolder(), "Ms1Match", "Trelliscope"),
-  Window = 2,
-  ...
+  MinCorrelationScore = 0.7,
+  Window = 2
 )
 }
 \arguments{
@@ -18,6 +18,8 @@ proteomatch_trelliscope(
 \item{Ms1Match}{A ProteoMatch_MatchedPeaks class object from match_full_seq_ms1. Required.}
 
 \item{Path}{The base directory of the trelliscope application. Default is Downloads/Ms1Match.}
+
+\item{MinCorrelationScore}{The minimum correlation score to plot. Default is 0.7.}
 
 \item{Window}{The -/+ m/z value on either side of the matched spectra plot. Default is 2 m/z.}
 }

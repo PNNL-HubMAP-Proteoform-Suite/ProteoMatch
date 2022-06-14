@@ -9,7 +9,7 @@
 #'     It is highly recommended that users visualize the spectra first to determine
 #'     a reasonable cutoff range. Required.
 #' @param NoiseFilter An abundance (every peak is scaled to the largest peak) cutoff
-#'     for peaks. A reasonable value should be in the 2.5 - 5.0% range. Default is 5%.
+#'     for peaks. A reasonable value should be in the 0.01 - 5.0% range. Default is 1%.
 #'
 #' @returns A peak_data object that has been filtered.
 #'
@@ -45,7 +45,7 @@
 #' @export
 filter_peaks <- function(PeakData,
                          MZRange,
-                         NoiseFilter = 5) {
+                         NoiseFilter = 1) {
 
   ##################
   ## CHECK INPUTS ##
