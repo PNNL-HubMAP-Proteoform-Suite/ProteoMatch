@@ -11,7 +11,11 @@
 #' @param IsotopicPercentage The minimum isotopic percentage (calculated intensity) permitted
 #'     to be matched. Default is 1, which is 1%.
 #' @param PPMThreshold The maximum m/z error permitted. Default is 10 ppm.
-#' @param MaxIsotopes The maximum number of isotopes to consider. Default is 20.
+#' @param NoiseFilter An abundance (every peak is scaled to the largest peak) cutoff
+#'     that each isotope must be larger/smaller than the previous isotope. This
+#'     value should be the same as in filter_peaks. A reasonable value should be
+#'     in the 0.01 - 5.0% range. Default is 1%.
+#' @param IsotopeRange The minimum and maximum number of isotopes to consider. Default is c(5,20).
 #' @param ProtonMass The AMU mass of a proton. Default is 1.00727647.
 #'
 #' @details
@@ -79,7 +83,8 @@ match_proteoform_to_ms1 <- function(PeakData,
                                     MolecularFormulas,
                                     IsotopicPercentage = 1,
                                     PPMThreshold = 10,
-                                    MaxIsotopes = 20,
+                                    NoiseFilter = 1,
+                                    IsotopeRange = c(5, 20),
                                     ProtonMass = 1.00727647) {
 
   ##################
@@ -109,12 +114,16 @@ match_proteoform_to_ms1 <- function(PeakData,
   }
   PPMThreshold <- abs(PPMThreshold)
 
-  # Check that max isotope is a numeric
-  if (!is.numeric(MaxIsotopes)) {
-    stop("MaxIsotopes must be numeric.")
+  # NoiseFilter should be a numeric value
+  if (!is.numeric(NoiseFilter) || NoiseFilter < 0 | NoiseFilter > 100) {
+    stop("NoiseFilter should be a numeric between 0 and 100, inclusive.")
   }
-  MaxIsotopes <- abs(round(MaxIsotopes))
-  if (MaxIsotopes == 0) {MaxIsotopes <- 1}
+
+  # Check that max isotope is a numeric
+  if (!is.numeric(IsotopeRange) | length(unique(abs(round(IsotopeRange)))) != 2) {
+    stop("IsotopeRange must be a numeric with at least two unique values.")
+  }
+  IsotopeRange <- abs(round(IsotopeRange))
 
   ##################
   ## RUN ITERATOR ##
@@ -135,7 +144,7 @@ match_proteoform_to_ms1 <- function(PeakData,
     ########################
 
     # Get Isotopes
-    Isotopes <- Rdisop::getMolecule(formula = MolForm, maxisotopes = MaxIsotopes)
+    Isotopes <- Rdisop::getMolecule(formula = MolForm, maxisotopes = max(IsotopeRange))
 
     # Pull isotope distribution
     IsoDist <- Isotopes$isotopes[[1]] %>%
@@ -195,10 +204,9 @@ match_proteoform_to_ms1 <- function(PeakData,
         Take = ifelse(is.na(Take), TRUE, Take)
       )
 
-
     IsoDist <- IsoDist[CloseValues$Take,]
 
-    if (nrow(IsoDist) < 3) {return(NULL)}
+    if (nrow(IsoDist) < min(IsotopeRange)) {return(NULL)}
 
     ####################
     ## FILTER MATCHES ##
@@ -213,19 +221,19 @@ match_proteoform_to_ms1 <- function(PeakData,
       dplyr::mutate(
         `Intensity Diff` = `Intensity Experimental` -
           dplyr::lag(`Intensity Experimental`, default = dplyr::first(`Intensity Experimental`)),
-        Flag = `Intensity Diff` >= 0 & `M/Z` > Isotopes$exactmass + (3/Charge)
+        Flag = abs(`Intensity Diff`) >= NoiseFilter | `Intensity Diff` == 0
       )
 
     # Determine where to subset from
-    if (TRUE %in% IsoDist$Flag) {
-      IsoDist <- IsoDist[1:(min(which(IsoDist$Flag == TRUE))-1),]
+    if (FALSE %in% IsoDist$Flag) {
+      IsoDist <- IsoDist[1:(min(which(IsoDist$Flag == FALSE))-1),]
     }
 
     # Fix intensity to be on the same scale
     IsoDist$Intensity <- IsoDist$Intensity * max(PeakData$Intensity)
 
     # Add correlation score
-    if (nrow(IsoDist) >= 3) {
+    if (nrow(IsoDist) >= min(IsotopeRange)) {
 
       IsoDist$AbsRelError <- 1/nrow(IsoDist) * sum(abs(IsoDist$Intensity - IsoDist$`Intensity Experimental`) / IsoDist$Intensity)
       IsoDist$Correlation <- lsa::cosine(IsoDist$`Intensity Experimental`, IsoDist$Intensity * 1000)[1,1]

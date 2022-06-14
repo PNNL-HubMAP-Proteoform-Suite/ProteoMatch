@@ -6,7 +6,7 @@
 #' @param PeakData A pspecterlib peak_data object or data.table with "M/Z" and "Intensity". Required.
 #' @param Ms1Match A ProteoMatch_MatchedPeaks class object from match_full_seq_ms1. Required.
 #' @param ID The ID in the ProteoMatch_MatchedPeaks object to plot. Required.
-#' @param Window The -/+ m/z value on either side of the matched spectra plot. Default is 2 m/z.
+#' @param Window The -/+ m/z value on either side of the matched spectra plot. Default is 5 m/z.
 #'
 #' @returns A ggplot object
 #'
@@ -41,7 +41,7 @@
 plot_Ms1Match <- function(PeakData,
                           Ms1Match,
                           ID,
-                          Window = 2) {
+                          Window = 5) {
 
   ##################
   ## CHECK INPUTS ##

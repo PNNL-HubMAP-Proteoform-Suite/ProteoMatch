@@ -4,7 +4,7 @@
 \alias{plot_Ms1Match}
 \title{Plots the Proteoform Isotope Profile on top of the experimental sequence}
 \usage{
-plot_Ms1Match(PeakData, Ms1Match, ID, Window = 2)
+plot_Ms1Match(PeakData, Ms1Match, ID, Window = 5)
 }
 \arguments{
 \item{PeakData}{A pspecterlib peak_data object or data.table with "M/Z" and "Intensity". Required.}
@@ -13,7 +13,7 @@ plot_Ms1Match(PeakData, Ms1Match, ID, Window = 2)
 
 \item{ID}{The ID in the ProteoMatch_MatchedPeaks object to plot. Required.}
 
-\item{Window}{The -/+ m/z value on either side of the matched spectra plot. Default is 2 m/z.}
+\item{Window}{The -/+ m/z value on either side of the matched spectra plot. Default is 5 m/z.}
 }
 \value{
 A ggplot object

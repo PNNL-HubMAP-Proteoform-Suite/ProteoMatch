@@ -60,10 +60,10 @@ run_proteomatch <- function(ProteoformFile,
 
   # The settings file should have all the required parameters
   RequiredRow <- c("MZRange", "NoiseFilter", "Charges", "CorrelationMinimum",
-    "IsotopicPercentage","PPMThreshold", "MaxIsotopes", "PlottingWindow", "ProtonMass")
+    "IsotopicPercentage","PPMThreshold", "IsotopeRange", "PlottingWindow", "ProtonMass")
   if (!all(Settings$Parameter %in% RequiredRow)) {
-    stop("Settings file is missing:",
-         paste0(Settings$Parameter[!Settings$Parameter %in% RequiredRow], ", ", collapse = ""))
+    stop("Settings file is missing: ",
+         paste0(RequiredRow[!RequiredRow  %in% Settings$Parameter], ", ", collapse = ""))
   }
 
   ##################
@@ -96,7 +96,8 @@ run_proteomatch <- function(ProteoformFile,
     MolecularFormulas = MolForm,
     IsotopicPercentage = Settings[Settings$Parameter == "IsotopicPercentage", "Default"] %>% as.numeric(),
     PPMThreshold = Settings[Settings$Parameter == "PPMThreshold", "Default"] %>% as.numeric(),
-    MaxIsotopes = Settings[Settings$Parameter == "MaxIsotopes", "Default"] %>% as.numeric(),
+    NoiseFilter = Settings[Settings$Parameter == "NoiseFilter", "Default"] %>% as.numeric(),
+    IsotopeRange = Settings[Settings$Parameter == "IsotopeRange", "Default"] %>% strsplit("-") %>% unlist() %>% as.numeric(),
     ProtonMass = Settings[Settings$Parameter == "ProtonMass", "Default"] %>% as.numeric()
   )
   write.csv(MatchedPeaks, file.path(Path, "Matched_Isotope_Distributions.csv"), row.names = F, quote = F)
