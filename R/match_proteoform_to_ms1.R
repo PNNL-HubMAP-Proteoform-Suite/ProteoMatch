@@ -11,10 +11,8 @@
 #' @param IsotopicPercentage The minimum isotopic percentage (calculated intensity) permitted
 #'     to be matched. Default is 1, which is 1%.
 #' @param PPMThreshold The maximum m/z error permitted. Default is 10 ppm.
-#' @param NoiseFilter An abundance (every peak is scaled to the largest peak) cutoff
-#'     that each isotope must be larger/smaller than the previous isotope. This
-#'     value should be the same as in filter_peaks. A reasonable value should be
-#'     in the 0.01 - 5.0% range. Default is 1%.
+#' @param MinAbsoluteChange An abundance (every peak is scaled to the largest peak)
+#'     absolute change required to count a subsequent peak as an isotope. Default is 0.5.
 #' @param IsotopeRange The minimum and maximum number of isotopes to consider. Default is c(5,20).
 #' @param ProtonMass The AMU mass of a proton. Default is 1.00727647.
 #'
@@ -83,7 +81,7 @@ match_proteoform_to_ms1 <- function(PeakData,
                                     MolecularFormulas,
                                     IsotopicPercentage = 1,
                                     PPMThreshold = 10,
-                                    NoiseFilter = 1,
+                                    MinAbsoluteChange = 0.5,
                                     IsotopeRange = c(5, 20),
                                     ProtonMass = 1.00727647) {
 
@@ -114,9 +112,9 @@ match_proteoform_to_ms1 <- function(PeakData,
   }
   PPMThreshold <- abs(PPMThreshold)
 
-  # NoiseFilter should be a numeric value
-  if (!is.numeric(NoiseFilter) || NoiseFilter < 0 | NoiseFilter > 100) {
-    stop("NoiseFilter should be a numeric between 0 and 100, inclusive.")
+  # MinAbsoluteChange should be a numeric value
+  if (!is.numeric(MinAbsoluteChange) || MinAbsoluteChange < 0 | MinAbsoluteChange > 100) {
+    stop("MinAbsoluteChange should be a numeric between 0 and 100, inclusive.")
   }
 
   # Check that max isotope is a numeric
@@ -221,7 +219,7 @@ match_proteoform_to_ms1 <- function(PeakData,
       dplyr::mutate(
         `Intensity Diff` = `Intensity Experimental` -
           dplyr::lag(`Intensity Experimental`, default = dplyr::first(`Intensity Experimental`)),
-        Flag = abs(`Intensity Diff`) >= NoiseFilter | `Intensity Diff` == 0
+        Flag = abs(`Intensity Diff`) >= MinAbsoluteChange | `Intensity Diff` == 0
       )
 
     # Determine where to subset from

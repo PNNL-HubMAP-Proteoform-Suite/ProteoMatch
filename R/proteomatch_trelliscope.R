@@ -108,11 +108,14 @@ proteomatch_trelliscope <- function(PeakData,
   # List relevant ProteoMatch columns
   RelCol <- c("Protein", "Absolute Relative Error", "Correlation", "Charge", "Proteoform", "ID")
 
-  # Calculate Median PPM Error
+  # Calculate Median PPM Error and Minimum MZ
   MedianPPMError <- ProteoMatchTrelli %>%
-    dplyr::select(ID, `PPM Error`) %>%
+    dplyr::select(ID, `PPM Error`, `M/Z`) %>%
     dplyr::group_by(ID) %>%
-    dplyr::summarise(`Median PPM Error` = median(`PPM Error`)) %>%
+    dplyr::summarise(
+      `Median PPM Error` = median(`PPM Error`),
+      `Minimum Matched M/Z` = min(`M/Z`)
+    ) %>%
     dplyr::ungroup()
 
   # Generate trelliscope display

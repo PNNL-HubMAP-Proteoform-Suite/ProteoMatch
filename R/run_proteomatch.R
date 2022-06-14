@@ -56,10 +56,10 @@ run_proteomatch <- function(ProteoformFile,
   if (!grepl(".xlsx", SettingsFile)) {
     stop("SettingsFile needs to be an xlsx file.")
   }
-  Settings <- xlsx::read.xlsx(SettingsFile, 1)
+  Settings <- suppressWarnings({xlsx::read.xlsx(SettingsFile, 1)})
 
   # The settings file should have all the required parameters
-  RequiredRow <- c("MZRange", "NoiseFilter", "Charges", "CorrelationMinimum",
+  RequiredRow <- c("MZRange", "NoiseFilter", "Charges", "MinAbsoluteChange", "CorrelationMinimum",
     "IsotopicPercentage","PPMThreshold", "IsotopeRange", "PlottingWindow", "ProtonMass")
   if (!all(Settings$Parameter %in% RequiredRow)) {
     stop("Settings file is missing: ",
@@ -69,6 +69,9 @@ run_proteomatch <- function(ProteoformFile,
   ##################
   ## RUN PIPELINE ##
   ##################
+
+  # 0. Create output directory
+  if (!dir.exists(Path)) {dir.create(Path)}
 
   # 1. Calculate Molecular Formula
   if (Messages) {message("Calculating molecular formulas...")}
@@ -96,8 +99,8 @@ run_proteomatch <- function(ProteoformFile,
     MolecularFormulas = MolForm,
     IsotopicPercentage = Settings[Settings$Parameter == "IsotopicPercentage", "Default"] %>% as.numeric(),
     PPMThreshold = Settings[Settings$Parameter == "PPMThreshold", "Default"] %>% as.numeric(),
-    NoiseFilter = Settings[Settings$Parameter == "NoiseFilter", "Default"] %>% as.numeric(),
-    IsotopeRange = Settings[Settings$Parameter == "IsotopeRange", "Default"] %>% strsplit("-") %>% unlist() %>% as.numeric(),
+    MinAbsoluteChange = Settings[Settings$Parameter == "MinAbsoluteChange", "Default"] %>% as.numeric(),
+    IsotopeRange = Settings[Settings$Parameter == "IsotopeRange", "Default"] %>% strsplit(",") %>% unlist() %>% as.numeric(),
     ProtonMass = Settings[Settings$Parameter == "ProtonMass", "Default"] %>% as.numeric()
   )
   write.csv(MatchedPeaks, file.path(Path, "Matched_Isotope_Distributions.csv"), row.names = F, quote = F)
