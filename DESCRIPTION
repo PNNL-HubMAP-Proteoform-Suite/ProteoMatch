@@ -22,7 +22,7 @@ Imports:
     ggplot2,
     xlsx
 Remotes:
-    EMSL-Computing/pspecterlib
+    EMSL-Computing/pspecterlib,
     hafen/trelliscopejs
     
   
