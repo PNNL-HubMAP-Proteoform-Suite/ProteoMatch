@@ -52,7 +52,7 @@
 #' )
 #'
 #' # Make the trelliscope display
-#' proteomatch_trelliscope(PeakData = PeakData, Ms1Match = ProteoMatch, MolecularFormulas = MolForms_Test)
+#' proteomatch_trelliscope(PeakData = PeakData, Ms1Match = ProteoMatch)
 #'
 #' }
 #'

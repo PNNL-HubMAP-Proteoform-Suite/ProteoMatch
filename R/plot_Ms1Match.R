@@ -33,7 +33,7 @@
 #' )
 #'
 #' # Make plot
-#' plot_Ms1Match(PeakData = PeakData, Ms1Match = AllMatches, MolecularFormulas = MolForms_Test, ID = 1)
+#' plot_Ms1Match(PeakData = PeakData, Ms1Match = AllMatches, ID = 1)
 #'
 #' }
 #'
