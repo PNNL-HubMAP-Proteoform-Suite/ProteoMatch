@@ -5,7 +5,6 @@
 #'
 #' @param PeakData A pspecterlib peak_data object or data.table with "M/Z" and "Intensity". Required.
 #' @param Ms1Match A ProteoMatch_MatchedPeaks object from match_full_seq_ms1. Required.
-#' @param MolForms A ProteoMatch_MolForm object from calculate_molform. Required.
 #' @param ID The ID in the ProteoMatch_MatchedPeaks object to plot. Required.
 #' @param Window The -/+ m/z value on either side of the matched spectra plot. Default is 5 m/z.
 #'
@@ -92,40 +91,22 @@ plot_Ms1Match <- function(PeakData,
   AdjPeakData <- PeakData %>%
     dplyr::filter(`M/Z` >= min(Ms1MatchSub$`M/Z`) - Window & `M/Z` <= max(Ms1MatchSub$`M/Z`) + Window)
 
-  # Get max calculated intensity and max measured abundance
-  calcInten <- unlist(Ms1MatchSub$Intensity)[which.max(unlist(Ms1MatchSub$Intensity))]
-  maxAbun <- unlist(AdjPeakData$Abundance)[which.max(unlist(AdjPeakData$Abundance))]
-
-  # Determine scale and scale intensity
-  scalingFactor <- maxAbun / calcInten
-  Ms1MatchSub$Abundance <- Ms1MatchSub$Intensity * scalingFactor
-
-
-
-  # # Extract matched peaks
-  # MatchedPeaks <- Ms1Match %>% dplyr::select(`M/Z Experimental`) %>% unlist()
-  #
-  # # Match calculated peaks
-  # AdjPeakData[AdjPeakData$`M/Z` %in% MatchedPeaks, "Spectrum"] <- "Calculated"
-  #
-  # # Zero fill MS1 match
-  # MS1 <- data.table::data.table(
-  #   `M/Z` = c(AdjPeakData$`M/Z` - 1e-9, AdjPeakData$`M/Z`, AdjPeakData$`M/Z` + 1e-9),
-  #   Abundance = c(rep(0, nrow(AdjPeakData)), AdjPeakData$Abundance, rep(0, nrow(AdjPeakData))),
-  #   Spectrum = rep(AdjPeakData$Spectrum)
-  # ) %>%
-  #   dplyr::arrange(`M/Z`)
+  # Zero fill MS1 match
+  MS1 <- data.table::data.table(
+    `M/Z` = c(AdjPeakData$`M/Z` - 1e-9, AdjPeakData$`M/Z`, AdjPeakData$`M/Z` + 1e-9),
+    Abundance = c(rep(0, nrow(AdjPeakData)), AdjPeakData$Abundance, rep(0, nrow(AdjPeakData)))
+  ) %>%
+    dplyr::arrange(`M/Z`)
 
   ###############
   ## MAKE PLOT ##
   ###############
 
-  browser()
-
-  ggplot2::ggplot(data = AdjPeakData, ggplot2::aes(x = `M/Z`, y = Abundance)) +
-    ggplot2::geom_line(color = "black") +
+  plot <- ggplot2::ggplot(data = MS1, ggplot2::aes(x = `M/Z`, y = Abundance)) +
+    ggplot2::geom_line(color = "black") + ggplot2::ylim(c(0, max(MS1$Abundance + 1))) +
     ggplot2::geom_point(data = Ms1MatchSub, ggplot2::aes(x = `M/Z`, y = Abundance), color = "red") +
-    ggplot2::theme_bw() + ggplot2::scale_color_manual(values = c("Experimental" = "black", "Calculated" = "red"))
+    ggplot2::theme_bw() + ggplot2::scale_color_manual(values = c("Experimental" = "black", "Calculated" = "red")) +
+    ggplot2::geom_vline(xintercept = Ms1MatchSub$`Monoisotopic Mass`[1], linetype = "dotted", color = "gray")
 
   return(plot)
 

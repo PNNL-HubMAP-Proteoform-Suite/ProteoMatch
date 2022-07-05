@@ -11,8 +11,8 @@
 #' @param IsotopicPercentage The minimum isotopic percentage (calculated intensity) permitted
 #'     to be matched. Default is 1, which is 1%.
 #' @param PPMThreshold The maximum m/z error permitted. Default is 10 ppm.
-#' @param MinAbsoluteChange An abundance (every peak is scaled to the largest peak)
-#'     absolute change required to count a subsequent peak as an isotope. Default is 0.5.
+#' @param MinAbundanceChange An abundance (every peak is scaled to the largest peak)
+#'     absolute change required to count a subsequent peak as an isotope. Default is 0.1.
 #' @param IsotopeRange The minimum and maximum number of isotopes to consider. Default is c(5,20).
 #' @param ProtonMass The AMU mass of a proton. Default is 1.00727647.
 #'
@@ -81,7 +81,7 @@ match_proteoform_to_ms1 <- function(PeakData,
                                     MolecularFormulas,
                                     IsotopicPercentage = 1,
                                     PPMThreshold = 10,
-                                    MinAbsoluteChange = 0.5,
+                                    MinAbundanceChange = 0.1,
                                     IsotopeRange = c(5, 20),
                                     ProtonMass = 1.00727647) {
 
@@ -112,9 +112,9 @@ match_proteoform_to_ms1 <- function(PeakData,
   }
   PPMThreshold <- abs(PPMThreshold)
 
-  # MinAbsoluteChange should be a numeric value
-  if (!is.numeric(MinAbsoluteChange) || MinAbsoluteChange < 0 | MinAbsoluteChange > 100) {
-    stop("MinAbsoluteChange should be a numeric between 0 and 100, inclusive.")
+  # MinAbundanceChange should be a numeric value
+  if (!is.numeric(MinAbundanceChange) || MinAbundanceChange < 0 | MinAbundanceChange > 100) {
+    stop("MinAbundanceChange should be a numeric between 0 and 100, inclusive.")
   }
 
   # Check that max isotope is a numeric
@@ -130,6 +130,7 @@ match_proteoform_to_ms1 <- function(PeakData,
   .match_proteoform_to_ms1_iterator <- function(PeakData,
                                                 MolForm,
                                                 MassShift,
+                                                MonoisotopicMass,
                                                 Charge,
                                                 Protein,
                                                 Proteoform,
@@ -207,45 +208,55 @@ match_proteoform_to_ms1 <- function(PeakData,
 
     if (nrow(IsoDist) < min(IsotopeRange)) {return(NULL)}
 
-    ####################
-    ## FILTER MATCHES ##
-    ####################
+    ################################
+    ## FILTER ISOTOPIC PERCENTAGE ##
+    ################################
 
-    # Filter by intensity
+    # Filter by isotopes with an intensity percentage
     IsoDist <- IsoDist[IsoDist$Intensity >= IsotopicPercentage/100,]
 
-    # Since there is a high number of matches, stop once the intensity begins to increase at the end
-    # of isotope matches
+    ##########################
+    ## CALCULATED ABUNDANCE ##
+    ##########################
+
+    # Get max calculated intensity and max measured abundance
+    calcInten <- unlist(IsoDist$Intensity)[which.max(unlist(IsoDist$Intensity))]
+    maxAbun <- unlist(IsoDist$Abundance)[which.max(unlist(IsoDist$Abundance))]
+
+    # Determine scale and scale intensity
+    scalingFactor <- maxAbun / calcInten
+    IsoDist$Abundance <- IsoDist$Intensity * scalingFactor
+
+    ######################
+    ## ABUNDANCE FILTER ##
+    ######################
+
+    # Flag abundance changes that are greater than the threshold
     IsoDist <- IsoDist %>%
       dplyr::mutate(
-        `Intensity Diff` = `Intensity Experimental` -
-          dplyr::lag(`Intensity Experimental`, default = dplyr::first(`Intensity Experimental`)),
-        Flag = abs(`Intensity Diff`) >= MinAbsoluteChange | `Intensity Diff` == 0
+        `Abundance Diff` = `Abundance Experimental` -
+          dplyr::lag(`Abundance Experimental`, default = dplyr::first(`Abundance Experimental`)),
+        Flag = abs(`Abundance Diff`) >= MinAbundanceChange | `Abundance Diff` == 0
       )
-
-    browser()
 
     # Determine where to subset from
     if (FALSE %in% IsoDist$Flag) {
       IsoDist <- IsoDist[1:(min(which(IsoDist$Flag == FALSE))-1),]
     }
 
-
-
-    # Fix intensity to be on the same scale
-    IsoDist$Intensity <- IsoDist$Intensity * max(PeakData$Intensity)
-
-
     ######################
     ## CALCULATE SCORES ##
     ######################
 
-
     # Add correlation score
     if (nrow(IsoDist) >= min(IsotopeRange)) {
 
-      IsoDist$AbsRelError <- 1/nrow(IsoDist) * sum(abs(IsoDist$Intensity - IsoDist$`Intensity Experimental`) / IsoDist$Intensity)
-      IsoDist$Correlation <- lsa::cosine(IsoDist$`Intensity Experimental`, IsoDist$Intensity * 1000)[1,1]
+      # Absolute Relative Error and Cosine Correlation
+      IsoDist$AbsRelError <- 1/nrow(IsoDist) * sum(abs(IsoDist$Abundance - IsoDist$`Abundance Experimental`) / IsoDist$Abundance)
+      IsoDist$Correlation <- lsa::cosine(IsoDist$`Abundance Experimental`, IsoDist$Abundance)[1,1]
+
+      # Figure of merit
+      IsoDist$`Figure of Merit` <- nrow(IsoDist) / (sum((IsoDist$Abundance - IsoDist$`Abundance Experimental`)^2 + attributes(PeakData)$pspecter$MinimumAbundance^2))
 
       # Add missing columns and reorder
       IsoDist <- IsoDist %>%
@@ -253,13 +264,13 @@ match_proteoform_to_ms1 <- function(PeakData,
           Protein = Protein,
           `Absolute Relative Error` = AbsRelError,
           Charge = Charge,
-          Proteoform = Proteoform
+          Proteoform = Proteoform,
+          `Monoisotopic Mass` = MonoisotopicMass,
         ) %>%
-        dplyr::select(-c(`Intensity Diff`, Flag, AbsRelError)) %>%
         dplyr::select(
-          Protein, `M/Z`, Intensity, Isotope, `M/Z Tolerance`, `M/Z Experimental`,
-          `Intensity Experimental`, `PPM Error`, `Absolute Relative Error`,
-          Correlation, Charge, Proteoform
+          Protein, `M/Z`, `Monoisotopic Mass`, Intensity, Abundance, Isotope, `M/Z Tolerance`, `M/Z Experimental`,
+          `Intensity Experimental`, `Abundance Experimental`, `PPM Error`, `Absolute Relative Error`,
+          Correlation, `Figure of Merit`, Charge, Proteoform
         ) %>%
         dplyr::mutate(ID = uuid::UUIDgenerate())
 
@@ -275,6 +286,7 @@ match_proteoform_to_ms1 <- function(PeakData,
       PeakData = PeakData,
       MolForm = MolecularFormulas$`Molecular Formula`[el] %>% unlist(),
       MassShift = MolecularFormulas$`Mass Shift`[el] %>% unlist(),
+      MonoisotopicMass = MolecularFormulas$`Monoisotopic Mass`[el] %>% unlist(),
       Charge = MolecularFormulas$Charge[el] %>% unlist(),
       Protein = MolecularFormulas$Protein[el] %>% unlist(),
       Proteoform = MolecularFormulas$Proteoform[el] %>% unlist(),

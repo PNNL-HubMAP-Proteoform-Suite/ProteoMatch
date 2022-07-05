@@ -59,7 +59,7 @@ run_proteomatch <- function(ProteoformFile,
   Settings <- suppressWarnings({xlsx::read.xlsx(SettingsFile, 1)})
 
   # The settings file should have all the required parameters
-  RequiredRow <- c("MZRange", "NoiseFilter", "Charges", "MinAbsoluteChange", "CorrelationMinimum",
+  RequiredRow <- c("MZRange", "NoiseFilter", "Charges", "MinAbundanceChange", "CorrelationMinimum",
     "IsotopicPercentage","PPMThreshold", "IsotopeRange", "PlottingWindow", "ProtonMass")
   if (!all(Settings$Parameter %in% RequiredRow)) {
     stop("Settings file is missing: ",
@@ -99,7 +99,7 @@ run_proteomatch <- function(ProteoformFile,
     MolecularFormulas = MolForm,
     IsotopicPercentage = Settings[Settings$Parameter == "IsotopicPercentage", "Default"] %>% as.numeric(),
     PPMThreshold = Settings[Settings$Parameter == "PPMThreshold", "Default"] %>% as.numeric(),
-    MinAbsoluteChange = Settings[Settings$Parameter == "MinAbsoluteChange", "Default"] %>% as.numeric(),
+    MinAbundanceChange = Settings[Settings$Parameter == "MinAbundanceChange", "Default"] %>% as.numeric(),
     IsotopeRange = Settings[Settings$Parameter == "IsotopeRange", "Default"] %>% strsplit(",") %>% unlist() %>% as.numeric(),
     ProtonMass = Settings[Settings$Parameter == "ProtonMass", "Default"] %>% as.numeric()
   )
