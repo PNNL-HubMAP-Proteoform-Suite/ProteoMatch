@@ -21,6 +21,7 @@
 #'
 #' @param PeakData A pspecterlib peak_data object or data.table with "M/Z" and "Intensity". Required.
 #' @param Ms1Match A ProteoMatch_MatchedPeaks class object from match_full_seq_ms1. Required.
+#' @param MolecularFormulas A ProteoMatch_MolForm object from calculate_molform. Required.
 #' @param Path The base directory of the trelliscope application. Default is Downloads/Ms1Match.
 #' @param MinCorrelationScore The minimum correlation score to plot. Default is 0.7.
 #' @param Window The -/+ m/z value on either side of the matched spectra plot. Default is 2 m/z.
@@ -52,7 +53,7 @@
 #' )
 #'
 #' # Make the trelliscope display
-#' proteomatch_trelliscope(PeakData = PeakData, Ms1Match = ProteoMatch)
+#' proteomatch_trelliscope(PeakData = PeakData, Ms1Match = ProteoMatch, MolecularFormulas = MolForms_Test)
 #'
 #' }
 #'
@@ -60,6 +61,7 @@
 #' @export
 proteomatch_trelliscope <- function(PeakData,
                                     Ms1Match,
+                                    MolecularFormulas,
                                     Path = file.path(.getDownloadsFolder(), "Ms1Match", "Trelliscope"),
                                     MinCorrelationScore = 0.7,
                                     Window = 2) {
@@ -76,6 +78,11 @@ proteomatch_trelliscope <- function(PeakData,
   # Ms1Match should be a ProteoMatch_MatchedPeaks object
   if ("ProteoMatch_MatchedPeaks" %in% class(Ms1Match) == FALSE) {
     stop("Ms1Match must be a ProteoMatch_MatchedPeaks object from match_proteoform_to_ms1")
+  }
+
+  # Check that molecular formula is a string
+  if (inherits(MolecularFormulas, "ProteoMatch_MolForm") == FALSE) {
+    stop("MolecularFormulas must be a ProteoMatch_MolForm object.")
   }
 
   # Check that minimum correlation score is within 0-1

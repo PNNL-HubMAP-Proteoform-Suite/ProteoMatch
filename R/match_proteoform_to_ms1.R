@@ -183,6 +183,7 @@ match_proteoform_to_ms1 <- function(PeakData,
     IsoDist <- IsoDist[which(IsoDist$`M/Z Difference` < IsoDist$`M/Z Tolerance`), ]
     IsoDist$`M/Z Experimental` <- PeakData$`M/Z`[IsoDist$`Closest Index`]
     IsoDist$`Intensity Experimental` <- PeakData$Intensity[IsoDist$`Closest Index`]
+    IsoDist$`Abundance Experimental` <- PeakData$Abundance[IsoDist$`Closest Index`]
 
     # Remove non-necessary rows moving forward
     IsoDist <- IsoDist %>% dplyr::select(-c(`Left Difference`, `Right Difference`, `Closest Index`, `M/Z Difference`))
@@ -222,13 +223,23 @@ match_proteoform_to_ms1 <- function(PeakData,
         Flag = abs(`Intensity Diff`) >= MinAbsoluteChange | `Intensity Diff` == 0
       )
 
+    browser()
+
     # Determine where to subset from
     if (FALSE %in% IsoDist$Flag) {
       IsoDist <- IsoDist[1:(min(which(IsoDist$Flag == FALSE))-1),]
     }
 
+
+
     # Fix intensity to be on the same scale
     IsoDist$Intensity <- IsoDist$Intensity * max(PeakData$Intensity)
+
+
+    ######################
+    ## CALCULATE SCORES ##
+    ######################
+
 
     # Add correlation score
     if (nrow(IsoDist) >= min(IsotopeRange)) {

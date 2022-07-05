@@ -4,7 +4,8 @@
 #'     plotted over the experimental spectrum.
 #'
 #' @param PeakData A pspecterlib peak_data object or data.table with "M/Z" and "Intensity". Required.
-#' @param Ms1Match A ProteoMatch_MatchedPeaks class object from match_full_seq_ms1. Required.
+#' @param Ms1Match A ProteoMatch_MatchedPeaks object from match_full_seq_ms1. Required.
+#' @param MolForms A ProteoMatch_MolForm object from calculate_molform. Required.
 #' @param ID The ID in the ProteoMatch_MatchedPeaks object to plot. Required.
 #' @param Window The -/+ m/z value on either side of the matched spectra plot. Default is 5 m/z.
 #'
@@ -33,7 +34,7 @@
 #' )
 #'
 #' # Make plot
-#' plot_Ms1Match(PeakData = PeakData, Ms1Match = AllMatches, ID = 1)
+#' plot_Ms1Match(PeakData = PeakData, Ms1Match = AllMatches, MolecularFormulas = MolForms_Test, ID = 1)
 #'
 #' }
 #'
@@ -81,40 +82,50 @@ plot_Ms1Match <- function(PeakData,
   class(PeakData) <- c("data.table", "data.frame")
   class(Ms1Match) <- c("data.table", "data.frame")
 
-  # Filter Ms1 Match to the correct subset
+  # Filter Ms1 Match to the correct subset, and adjust intensity
   IDSelection <- ID
-  Ms1Match <- Ms1Match %>% dplyr::filter(ID == IDSelection)
+  Ms1MatchSub <- Ms1Match %>%
+    dplyr::filter(ID == IDSelection) %>%
+    dplyr::mutate(Intensity = Intensity / 1000)
 
   # Adjust PeakData to be within range, rename intensity to abundance
   AdjPeakData <- PeakData %>%
-    dplyr::filter(`M/Z` >= min(Ms1Match$`M/Z`) - Window & `M/Z` <= max(Ms1Match$`M/Z`) + Window) %>%
-    dplyr::select(`M/Z`, Intensity) %>%
-    dplyr::rename(Abundance = Intensity) %>%
-    dplyr::mutate(Spectrum = "Experimental")
+    dplyr::filter(`M/Z` >= min(Ms1MatchSub$`M/Z`) - Window & `M/Z` <= max(Ms1MatchSub$`M/Z`) + Window)
 
-  # Extract matched peaks
-  MatchedPeaks <- Ms1Match %>% dplyr::select(`M/Z Experimental`) %>% unlist()
+  # Get max calculated intensity and max measured abundance
+  calcInten <- unlist(Ms1MatchSub$Intensity)[which.max(unlist(Ms1MatchSub$Intensity))]
+  maxAbun <- unlist(AdjPeakData$Abundance)[which.max(unlist(AdjPeakData$Abundance))]
 
-  # Match calculated peaks
-  AdjPeakData[AdjPeakData$`M/Z` %in% MatchedPeaks, "Spectrum"] <- "Calculated"
+  # Determine scale and scale intensity
+  scalingFactor <- maxAbun / calcInten
+  Ms1MatchSub$Abundance <- Ms1MatchSub$Intensity * scalingFactor
 
-  # Zero fill MS1 match
-  MS1 <- data.table::data.table(
-    `M/Z` = c(AdjPeakData$`M/Z` - 1e-9, AdjPeakData$`M/Z`, AdjPeakData$`M/Z` + 1e-9),
-    Abundance = c(rep(0, nrow(AdjPeakData)), AdjPeakData$Abundance, rep(0, nrow(AdjPeakData))),
-    Spectrum = rep(AdjPeakData$Spectrum)
-  ) %>%
-    dplyr::arrange(`M/Z`)
+
+
+  # # Extract matched peaks
+  # MatchedPeaks <- Ms1Match %>% dplyr::select(`M/Z Experimental`) %>% unlist()
+  #
+  # # Match calculated peaks
+  # AdjPeakData[AdjPeakData$`M/Z` %in% MatchedPeaks, "Spectrum"] <- "Calculated"
+  #
+  # # Zero fill MS1 match
+  # MS1 <- data.table::data.table(
+  #   `M/Z` = c(AdjPeakData$`M/Z` - 1e-9, AdjPeakData$`M/Z`, AdjPeakData$`M/Z` + 1e-9),
+  #   Abundance = c(rep(0, nrow(AdjPeakData)), AdjPeakData$Abundance, rep(0, nrow(AdjPeakData))),
+  #   Spectrum = rep(AdjPeakData$Spectrum)
+  # ) %>%
+  #   dplyr::arrange(`M/Z`)
 
   ###############
   ## MAKE PLOT ##
   ###############
 
-  # Build base spectrum
-  plot <- ggplot2::ggplot(MS1, ggplot2::aes(x = `M/Z`, y = Abundance, color = Spectrum)) +
-    ggplot2::geom_segment(x = min(MS1$`M/Z`), xend = max(MS1$`M/Z`), y = 0, yend = 0, color = "black") +
-    ggplot2::geom_line() + ggplot2::theme_bw() +
-    ggplot2::scale_color_manual(values = c("Experimental" = "black", "Calculated" = "red"))
+  browser()
+
+  ggplot2::ggplot(data = AdjPeakData, ggplot2::aes(x = `M/Z`, y = Abundance)) +
+    ggplot2::geom_line(color = "black") +
+    ggplot2::geom_point(data = Ms1MatchSub, ggplot2::aes(x = `M/Z`, y = Abundance), color = "red") +
+    ggplot2::theme_bw() + ggplot2::scale_color_manual(values = c("Experimental" = "black", "Calculated" = "red"))
 
   return(plot)
 
