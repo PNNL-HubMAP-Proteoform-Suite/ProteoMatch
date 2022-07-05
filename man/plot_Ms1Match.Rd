@@ -9,7 +9,7 @@ plot_Ms1Match(PeakData, Ms1Match, ID, Window = 5)
 \arguments{
 \item{PeakData}{A pspecterlib peak_data object or data.table with "M/Z" and "Intensity". Required.}
 
-\item{Ms1Match}{A ProteoMatch_MatchedPeaks class object from match_full_seq_ms1. Required.}
+\item{Ms1Match}{A ProteoMatch_MatchedPeaks object from match_full_seq_ms1. Required.}
 
 \item{ID}{The ID in the ProteoMatch_MatchedPeaks object to plot. Required.}
 

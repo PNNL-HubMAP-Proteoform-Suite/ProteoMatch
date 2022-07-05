@@ -10,4 +10,19 @@ Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.0
 Imports: 
-    magrittr
+    magrittr,
+    data.table,
+    stringr,
+    BRAIN,
+    tidyr,
+    dplyr,
+    Rdisop,
+    lsa,
+    uuid,
+    ggplot2,
+    xlsx
+Remotes:
+    EMSL-Computing/pspecterlib
+    hafen/trelliscopejs
+    
+  

@@ -9,7 +9,7 @@ match_proteoform_to_ms1(
   MolecularFormulas,
   IsotopicPercentage = 1,
   PPMThreshold = 10,
-  NoiseFilter = 1,
+  MinAbundanceChange = 0.1,
   IsotopeRange = c(5, 20),
   ProtonMass = 1.00727647
 )
@@ -26,10 +26,8 @@ to be matched. Default is 1, which is 1\%.}
 
 \item{PPMThreshold}{The maximum m/z error permitted. Default is 10 ppm.}
 
-\item{NoiseFilter}{An abundance (every peak is scaled to the largest peak) cutoff
-that each isotope must be larger/smaller than the previous isotope. This
-value should be the same as in filter_peaks. A reasonable value should be
-in the 0.01 - 5.0\% range. Default is 1\%.}
+\item{MinAbundanceChange}{An abundance (every peak is scaled to the largest peak)
+absolute change required to count a subsequent peak as an isotope. Default is 0.1.}
 
 \item{IsotopeRange}{The minimum and maximum number of isotopes to consider. Default is c(5,20).}
 
