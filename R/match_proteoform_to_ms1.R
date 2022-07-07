@@ -72,6 +72,7 @@
 #' match_proteoform_to_ms1(
 #'    PeakData = PeakData,
 #'    MolecularFormula = MolForms_Test,
+#'    IsotopeRange = c(3,20)
 #' )
 #'
 #' }
@@ -257,6 +258,7 @@ match_proteoform_to_ms1 <- function(PeakData,
 
       # Figure of merit
       IsoDist$`Figure of Merit` <- nrow(IsoDist) / (sum((IsoDist$Abundance - IsoDist$`Abundance Experimental`)^2 + attributes(PeakData)$pspecter$MinimumAbundance^2))
+      IsoDist$`Figure of Merit` <- ifelse(is.infinite(IsoDist$`Figure of Merit`), NA, IsoDist$`Figure of Merit`)
 
       # Add missing columns and reorder
       IsoDist <- IsoDist %>%
@@ -295,6 +297,12 @@ match_proteoform_to_ms1 <- function(PeakData,
       MaxIsotopes = MaxIsotopes
     )
   }))
+
+  # If no matches, return NULL
+  if (is.null(AllMatches)) {
+    message("No matches detected.")
+    return(NULL)
+  }
 
   # Simplify unique ID
   AllMatches$ID <- as.numeric(as.factor(AllMatches$ID))
