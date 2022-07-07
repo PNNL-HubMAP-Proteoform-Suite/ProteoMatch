@@ -5,7 +5,8 @@
 #' @param ProteoformFile Path to a csv with a column of "Proteoforms" and their "Protein"
 #'    identifier. Each Proteoform-Protein pairing should be unique. Proteoforms
 #'    should be written with proper annotations (i.e. "M.AA`[`Acetyl`]`AA`[`3.2`]`.V"). Required.
-#' @param mzMLFile Path to an mzML file containing one spectra. The file must be centroided.
+#' @param MSFile Path to an mzML file containing one spectra or a csv with two columns:
+#'    M/Z and Intensity. For better results, centroid the data.
 #'    Use the [msconverteR](https://github.com/wilsontom/msconverteR) package and
 #'    set msconvert_args = 'peakPicking true 1-'. Required.
 #' @param SettingsFile Path to a xlsx file with all user-set parameters. Required.
@@ -20,7 +21,7 @@
 #'
 #' @export
 run_proteomatch <- function(ProteoformFile,
-                            mzMLFile,
+                            MSFile,
                             SettingsFile,
                             Path = file.path(.getDownloadsFolder(), "Ms1Match"),
                             Messages = TRUE) {
@@ -40,17 +41,46 @@ run_proteomatch <- function(ProteoformFile,
     stop("ProteoformFile should have a column labeled 'Protein' and another labeled 'Proteoform'.")
   }
 
+  # Remove blank proteoforms
+  ProtoTest <- Proteoforms$Proteoform == "" | is.na(Proteoforms$Proteoform)
+  if (any(ProtoTest)) {
+    message(paste("NA and blank proteoforms detected. Removing", sum(ProtoTest), "blank proteoforms."))
+    Proteoforms <- Proteoforms[!ProtoTest,]
+  }
+  if (nrow(Proteoforms) < 1) {
+    stop("No proteoforms found in the Proteoform file.")
+  }
+
   # The MS data should be an mzML file
-  if (!grepl(".mzML", mzMLFile)) {
+  if (!(grepl(".mzML", MSFile) | (grepl(".csv", MSFile)))) {
     stop("mzMLFile should be in mzML format.")
   }
-  MSData <- pspecterlib::get_scan_metadata(mzMLFile)
 
-  # The mzML file should have one scan
-  if (nrow(MSData) > 1) {
-    stop("mzMLFile has more than one scan. This is unexpected.")
+  # Read data if mzML
+  if (grepl(".mzML", MSFile)) {
+
+    MSData <- pspecterlib::get_scan_metadata(MSFile)
+
+    # The mzML file should have one scan
+    if (nrow(MSData) > 1) {
+      stop("mzMLFile has more than one scan. This is unexpected.")
+    }
+    PeakData <- pspecterlib::get_peak_data(MSData, 1)
+
+  } else if (grepl(".csv", MSFile)) {
+
+    # Read file
+    MSData <- data.table::fread(MSFile)
+
+    # Confirm required columns are there
+    if (!(all(c("M/Z", "Intensity") %in% colnames(MSData)))) {
+      stop("An MSFile csv should have an M/Z and Intensity column.")
+    }
+
+    # Generate peak_data object
+    PeakData <- pspecterlib::make_peak_data(MSData$`M/Z`, MSData$Intensity)
+
   }
-  PeakData <- pspecterlib::get_peak_data(MSData, 1)
 
   # The settings file should have be an xlsx
   if (!grepl(".xlsx", SettingsFile)) {
@@ -103,6 +133,10 @@ run_proteomatch <- function(ProteoformFile,
     IsotopeRange = Settings[Settings$Parameter == "IsotopeRange", "Default"] %>% strsplit(",") %>% unlist() %>% as.numeric(),
     ProtonMass = Settings[Settings$Parameter == "ProtonMass", "Default"] %>% as.numeric()
   )
+  if (is.null(MatchedPeaks)) {
+    write.csv("No matches found", file.path(Path, "Matched_Isotope_Distributions.csv"), row.names = F, quote = F)
+    return(NULL)
+  }
   write.csv(MatchedPeaks, file.path(Path, "Matched_Isotope_Distributions.csv"), row.names = F, quote = F)
 
   # 4. Make the trelliscope display
