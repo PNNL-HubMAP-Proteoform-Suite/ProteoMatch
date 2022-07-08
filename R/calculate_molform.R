@@ -104,7 +104,7 @@ calculate_molform <- function(Proteoform,
   ## RUN ITERATOR ##
   ##################
 
-  .calculate_molform_iterator <- function(Proteoform, Protein, Charge, ProtonMass) {
+  .calculate_molform_iterator <- function(Proteoform, Charge) {
 
     #######################################
     ## GET MODIFICATION NAMES AND MASSES ##
@@ -215,14 +215,8 @@ calculate_molform <- function(Proteoform,
     }
 
     # Generate data table
-    ProteoMatch_MolForm <- data.table::data.table(
-      "Molecular Formula" = Formula$Formula,
-      "Mass Shift" = sum(MassChanges),
-      "Monoisotopic Mass" = MonoMass,
-      "Most Abundant Isotope" = MAI,
-      "Charge" = Charge,
-      "Protein" = Protein,
-      "Proteoform" = Proteoform
+    ProteoMatch_MolForm <- list(
+      Formula$Formula, sum(MassChanges), MonoMass, MAI
     )
 
     # Return object
@@ -230,11 +224,23 @@ calculate_molform <- function(Proteoform,
 
   }
 
-  # Iterate through proteoforms
-  All_MolForms <- data.table::data.table()
-  for (el in 1:length(Proteoform)) {
-    All_MolForms <- rbind(All_MolForms, .calculate_molform_iterator(Proteoform[el], Protein[el], Charge, ProtonMass))
-  }
+  # Iterate through proteoforms and charges, and calculate all required values
+  All_MolForms <- data.table::data.table(
+    Pform = rep(Proteoform, each = length(Charge)),
+    Name = rep(Protein, each = length(Charge)),
+    ChargeValue = Charge
+  ) %>%
+    unique() %>%
+    dplyr::group_by(Pform, Name, ChargeValue) %>%
+    dplyr::mutate(
+      Results = purrr::map2(Pform, ChargeValue, .calculate_molform_iterator),
+      `Molecular Formula` = Results[[1]][[1]],
+      `Mass Shift` = sum(Results[[1]][[2]]),
+      `Monoisotopic Mass` = Results[[1]][[3]],
+      `Most Abundant Isotope` = Results[[1]][[4]]
+    ) %>%
+    dplyr::select(-Results) %>%
+    dplyr::rename(Proteoform = Pform, Protein = Name, Charge = ChargeValue)
 
   # Add class
   class(All_MolForms) <- c("ProteoMatch_MolForm", class(All_MolForms))
