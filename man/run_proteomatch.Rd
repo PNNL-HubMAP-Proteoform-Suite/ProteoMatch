@@ -6,7 +6,7 @@
 \usage{
 run_proteomatch(
   ProteoformFile,
-  mzMLFile,
+  MSFile,
   SettingsFile,
   Path = file.path(.getDownloadsFolder(), "Ms1Match"),
   Messages = TRUE
@@ -17,7 +17,8 @@ run_proteomatch(
 identifier. Each Proteoform-Protein pairing should be unique. Proteoforms
 should be written with proper annotations (i.e. "M.AA\code{[}Acetyl\verb{]}AA\code{[}3.2\verb{]}.V"). Required.}
 
-\item{mzMLFile}{Path to an mzML file containing one spectra. The file must be centroided.
+\item{MSFile}{Path to an mzML file containing one spectra or a csv with two columns:
+M/Z and Intensity. For better results, centroid the data.
 Use the \href{https://github.com/wilsontom/msconverteR}{msconverteR} package and
 set msconvert_args = 'peakPicking true 1-'. Required.}
 

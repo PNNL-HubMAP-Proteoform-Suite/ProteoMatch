@@ -30,6 +30,7 @@
 #' AllMatches <- match_proteoform_to_ms1(
 #'    PeakData = PeakData,
 #'    MolecularFormula = MolForms_Test,
+#'    IsotopeRange = c(3,20)
 #' )
 #'
 #' # Make plot

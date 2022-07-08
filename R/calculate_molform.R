@@ -231,9 +231,10 @@ calculate_molform <- function(Proteoform,
   }
 
   # Iterate through proteoforms
-  All_MolForms <- do.call(rbind, lapply(1:length(Proteoform), function(el) {
-    .calculate_molform_iterator(Proteoform[el], Protein[el], Charge, ProtonMass)
-  })) %>% data.table::data.table()
+  All_MolForms <- data.table::data.table()
+  for (el in 1:length(Proteoform)) {
+    All_MolForms <- rbind(All_MolForms, .calculate_molform_iterator(Proteoform[el], Protein[el], Charge, ProtonMass))
+  }
 
   # Add class
   class(All_MolForms) <- c("ProteoMatch_MolForm", class(All_MolForms))
