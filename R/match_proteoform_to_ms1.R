@@ -123,21 +123,16 @@ match_proteoform_to_ms1 <- function(PeakData,
     stop("IsotopeRange must be a numeric with at least two unique values.")
   }
   IsotopeRange <- abs(round(IsotopeRange))
+  MinIsotopes <- min(IsotopeRange)
+  MaxIsotopes <- max(IsotopeRange)
 
   ##################
   ## RUN ITERATOR ##
   ##################
 
-  .match_proteoform_to_ms1_iterator <- function(PeakData,
-                                                MolForm,
-                                                MassShift,
-                                                MonoisotopicMass,
+  .match_proteoform_to_ms1_iterator <- function(MolForm,
                                                 Charge,
-                                                Protein,
-                                                Proteoform,
-                                                IsotopicPercentage,
-                                                PPMThreshold,
-                                                MaxIsotopes) {
+                                                MassShift) {
 
     ########################
     ## CALCULATE ISOTOPES ##
@@ -146,15 +141,20 @@ match_proteoform_to_ms1 <- function(PeakData,
     # Get Isotopes
     Isotopes <- Rdisop::getMolecule(formula = MolForm, maxisotopes = max(IsotopeRange))
 
-    # Pull isotope distribution
+    # Pull isotope distribution and filter by minimum intensity
+    browser() # Filter out any potential hits below the isotopic percentage
     IsoDist <- Isotopes$isotopes[[1]] %>%
       t() %>%
       data.table::data.table() %>%
       dplyr::rename(`M/Z` = V1, Intensity = V2) %>%
       dplyr::mutate(
         `M/Z` = (`M/Z` + (Charge * ProtonMass)) / Charge,
+        Intensity = Intensity * 100,
         Isotope = (1:length(Intensity)) - 1
       )
+
+    # Save the original IsoDist object before applying matches and filtering
+    OrigIsoDist <- IsoDist
 
     # Add mass change if it is not NULL
     if (!is.null(MassShift) & MassShift != 0) {
@@ -213,8 +213,9 @@ match_proteoform_to_ms1 <- function(PeakData,
     ## FILTER ISOTOPIC PERCENTAGE ##
     ################################
 
-    # Filter by isotopes with an intensity percentage
-    IsoDist <- IsoDist[IsoDist$Intensity >= IsotopicPercentage/100,]
+    # Filter by isotopes with an abundance
+    browser()
+    IsoDist <- IsoDist[IsoDist$Abundance >= IsotopicPercentage,]
 
     ##########################
     ## CALCULATED ABUNDANCE ##
@@ -252,6 +253,13 @@ match_proteoform_to_ms1 <- function(PeakData,
     # Add correlation score
     if (nrow(IsoDist) >= min(IsotopeRange)) {
 
+      browser()
+
+      # Determine what the experimental abundances should be by scaling to the max intensity
+      OrigIsoDist %>%
+        dplyr::mutate(Abundance = Intensity / max(Intensity)) %>%
+        dplyr::filter(Abundance >= IsotopicPercentage)
+
       # Absolute Relative Error and Cosine Correlation
       IsoDist$AbsRelError <- 1/nrow(IsoDist) * sum(abs(IsoDist$Abundance - IsoDist$`Abundance Experimental`) / IsoDist$Abundance)
       IsoDist$Correlation <- lsa::cosine(IsoDist$`Abundance Experimental`, IsoDist$Abundance)[1,1]
@@ -282,21 +290,28 @@ match_proteoform_to_ms1 <- function(PeakData,
 
   }
 
-  # Iterate through molecular formulas
-  AllMatches <- do.call(rbind, lapply(1:nrow(MolecularFormulas), function(el) {
-    .match_proteoform_to_ms1_iterator(
-      PeakData = PeakData,
-      MolForm = MolecularFormulas$`Molecular Formula`[el] %>% unlist(),
-      MassShift = MolecularFormulas$`Mass Shift`[el] %>% unlist(),
-      MonoisotopicMass = MolecularFormulas$`Monoisotopic Mass`[el] %>% unlist(),
-      Charge = MolecularFormulas$Charge[el] %>% unlist(),
-      Protein = MolecularFormulas$Protein[el] %>% unlist(),
-      Proteoform = MolecularFormulas$Proteoform[el] %>% unlist(),
-      IsotopicPercentage = IsotopicPercentage,
-      PPMThreshold = PPMThreshold,
-      MaxIsotopes = MaxIsotopes
+  # Iterate through and match molecular formula data
+  MolecularFormulas %>%
+    dplyr::mutate(
+      Inputs = purrr::pmap(list(`Molecular Formula`, Charge, `Mass Shift`),
+                           .match_proteoform_to_ms1_iterator)
     )
-  }))
+
+  # Iterate through molecular formulas
+  # AllMatches <- do.call(rbind, lapply(1:nrow(MolecularFormulas), function(el) {
+  #   .match_proteoform_to_ms1_iterator(
+  #     PeakData = PeakData,
+  #     MolForm = MolecularFormulas$`Molecular Formula`[el] %>% unlist(),
+  #     MassShift = MolecularFormulas$`Mass Shift`[el] %>% unlist(),
+  #     MonoisotopicMass = MolecularFormulas$`Monoisotopic Mass`[el] %>% unlist(),
+  #     Charge = MolecularFormulas$Charge[el] %>% unlist(),
+  #     Protein = MolecularFormulas$Protein[el] %>% unlist(),
+  #     Proteoform = MolecularFormulas$Proteoform[el] %>% unlist(),
+  #     IsotopicPercentage = IsotopicPercentage,
+  #     PPMThreshold = PPMThreshold,
+  #     MaxIsotopes = MaxIsotopes
+  #   )
+  # }))
 
   # If no matches, return NULL
   if (is.null(AllMatches)) {
