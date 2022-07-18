@@ -145,7 +145,8 @@ run_proteomatch <- function(ProteoformFile,
     PeakData = FilteredData,
     Ms1Match = MatchedPeaks,
     MinCorrelationScore = Settings[Settings$Parameter == "CorrelationMinimum", "Default"] %>% as.numeric(),
-    Window = Settings[Settings$Parameter == "PlottingWindow", "Default"] %>% as.numeric()
+    Window = Settings[Settings$Parameter == "PlottingWindow", "Default"] %>% as.numeric(),
+    Path = file.path(Path, "Trelliscope")
   )
 
 }

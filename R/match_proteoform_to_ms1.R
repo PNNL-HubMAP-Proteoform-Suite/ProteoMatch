@@ -142,16 +142,16 @@ match_proteoform_to_ms1 <- function(PeakData,
     Isotopes <- Rdisop::getMolecule(formula = MolForm, maxisotopes = max(IsotopeRange))
 
     # Pull isotope distribution and filter by minimum intensity
-    browser() # Filter out any potential hits below the isotopic percentage
     IsoDist <- Isotopes$isotopes[[1]] %>%
       t() %>%
       data.table::data.table() %>%
       dplyr::rename(`M/Z` = V1, Intensity = V2) %>%
       dplyr::mutate(
         `M/Z` = (`M/Z` + (Charge * ProtonMass)) / Charge,
-        Intensity = Intensity * 100,
-        Isotope = (1:length(Intensity)) - 1
-      )
+        Isotope = (1:length(Intensity)) - 1,
+        Percentage = Intensity / max(Intensity) * 100
+      ) %>%
+      dplyr::filter(Percentage >= IsotopicPercentage)
 
     # Save the original IsoDist object before applying matches and filtering
     OrigIsoDist <- IsoDist
@@ -209,14 +209,6 @@ match_proteoform_to_ms1 <- function(PeakData,
 
     if (nrow(IsoDist) < min(IsotopeRange)) {return(NULL)}
 
-    ################################
-    ## FILTER ISOTOPIC PERCENTAGE ##
-    ################################
-
-    # Filter by isotopes with an abundance
-    browser()
-    IsoDist <- IsoDist[IsoDist$Abundance >= IsotopicPercentage,]
-
     ##########################
     ## CALCULATED ABUNDANCE ##
     ##########################
@@ -253,74 +245,71 @@ match_proteoform_to_ms1 <- function(PeakData,
     # Add correlation score
     if (nrow(IsoDist) >= min(IsotopeRange)) {
 
-      browser()
+      # Add abundance to OrigIsoDist
+      OrigIsoDist$Abundance <- OrigIsoDist$Intensity * scalingFactor
 
-      # Determine what the experimental abundances should be by scaling to the max intensity
-      OrigIsoDist %>%
-        dplyr::mutate(Abundance = Intensity / max(Intensity)) %>%
-        dplyr::filter(Abundance >= IsotopicPercentage)
+      # Generate an abundance match data.frame
+      AbundanceDF <- merge(OrigIsoDist[,c("M/Z", "Abundance")], IsoDist[,c("M/Z", "Abundance Experimental")], by = "M/Z", all.x = T)
+      AbundanceDF$`Abundance Experimental`[is.na(AbundanceDF$`Abundance Experimental`)] <- 0
 
-      # Absolute Relative Error and Cosine Correlation
-      IsoDist$AbsRelError <- 1/nrow(IsoDist) * sum(abs(IsoDist$Abundance - IsoDist$`Abundance Experimental`) / IsoDist$Abundance)
-      IsoDist$Correlation <- lsa::cosine(IsoDist$`Abundance Experimental`, IsoDist$Abundance)[1,1]
+      # Calculate Absolute Relative Error, Correlation, and Figure of merit
+      IsoDist$AbsRelError <- 1/nrow(AbundanceDF) * sum(abs(AbundanceDF$Abundance - AbundanceDF$`Abundance Experimental`) / AbundanceDF$Abundance)
+      IsoDist$Correlation <- lsa::cosine(AbundanceDF$`Abundance Experimental`, AbundanceDF$Abundance)[1,1]
+      IsoDist$`Figure of Merit` <- nrow(AbundanceDF) / (sum((AbundanceDF$Abundance - AbundanceDF$`Abundance Experimental`)^2 + attributes(PeakData)$pspecter$MinimumAbundance^2))
 
       # Figure of merit
-      IsoDist$`Figure of Merit` <- nrow(IsoDist) / (sum((IsoDist$Abundance - IsoDist$`Abundance Experimental`)^2 + attributes(PeakData)$pspecter$MinimumAbundance^2))
       IsoDist$`Figure of Merit` <- ifelse(is.infinite(IsoDist$`Figure of Merit`), NA, IsoDist$`Figure of Merit`)
 
-      # Add missing columns and reorder
-      IsoDist <- IsoDist %>%
-        dplyr::mutate(
-          Protein = Protein,
-          `Absolute Relative Error` = AbsRelError,
-          Charge = Charge,
-          Proteoform = Proteoform,
-          `Monoisotopic Mass` = MonoisotopicMass,
-        ) %>%
-        dplyr::select(
-          Protein, `M/Z`, `Monoisotopic Mass`, Intensity, Abundance, Isotope, `M/Z Tolerance`, `M/Z Experimental`,
-          `Intensity Experimental`, `Abundance Experimental`, `PPM Error`, `Absolute Relative Error`,
-          Correlation, `Figure of Merit`, Charge, Proteoform
-        ) %>%
-        dplyr::mutate(ID = uuid::UUIDgenerate())
+      # Generate an identifier
+      ID <- uuid::UUIDgenerate()
 
-      return(IsoDist)
+      # Add missing columns and reorder
+      return(list(
+        IsoDist$`M/Z`, IsoDist$Intensity, IsoDist$Abundance, IsoDist$Isotope,
+        IsoDist$`M/Z Tolerance`, IsoDist$`M/Z Experimental`, IsoDist$`Intensity Experimental`,
+        IsoDist$`Abundance Experimental`, IsoDist$`PPM Error`, IsoDist$AbsRelError,
+        IsoDist$Correlation, IsoDist$`Figure of Merit`, rep(ID, nrow(IsoDist))
+      ))
+
 
     } else {return(NULL)}
 
   }
 
-  # Iterate through and match molecular formula data
-  MolecularFormulas %>%
+  # Iterate through and match molecular formula data. Remove NULLs and pull out
+  # the ID
+  MolFormTable <- MolecularFormulas %>%
     dplyr::mutate(
-      Inputs = purrr::pmap(list(`Molecular Formula`, Charge, `Mass Shift`),
+      Results = purrr::pmap(list(`Molecular Formula`, Charge, `Mass Shift`),
                            .match_proteoform_to_ms1_iterator)
+    ) %>%
+    dplyr::filter(!is.null(unlist(Results))) %>%
+    dplyr::mutate(
+      ID = Results[[1]][[13]][1]
     )
 
-  # Iterate through molecular formulas
-  # AllMatches <- do.call(rbind, lapply(1:nrow(MolecularFormulas), function(el) {
-  #   .match_proteoform_to_ms1_iterator(
-  #     PeakData = PeakData,
-  #     MolForm = MolecularFormulas$`Molecular Formula`[el] %>% unlist(),
-  #     MassShift = MolecularFormulas$`Mass Shift`[el] %>% unlist(),
-  #     MonoisotopicMass = MolecularFormulas$`Monoisotopic Mass`[el] %>% unlist(),
-  #     Charge = MolecularFormulas$Charge[el] %>% unlist(),
-  #     Protein = MolecularFormulas$Protein[el] %>% unlist(),
-  #     Proteoform = MolecularFormulas$Proteoform[el] %>% unlist(),
-  #     IsotopicPercentage = IsotopicPercentage,
-  #     PPMThreshold = PPMThreshold,
-  #     MaxIsotopes = MaxIsotopes
-  #   )
-  # }))
+  # Pivot wider the results list
+  Results <- do.call(rbind, purrr::map(MolFormTable$Results, data.table::as.data.table))
+  colnames(Results) <- c("M/Z", "Intensity", "Abundance", "Isotope",
+                         "M/Z Tolerance", "M/Z Experimental", "Intensity Experimental",
+                         "Abundance Experimental", "PPM Error", "Absolute Relative Error",
+                         "Correlation", "Figure of Merit", "ID")
+
+  # Merge the two tables by the ID
+  AllMatches <- merge(MolFormTable %>% dplyr::select(-Results), Results, by = "ID", all.y = TRUE) %>%
+    dplyr::mutate(ID = as.numeric(as.factor(ID))) %>%
+    dplyr::select(
+      Protein, `M/Z`, `Monoisotopic Mass`, Intensity, Abundance, Isotope, `M/Z Tolerance`, `M/Z Experimental`,
+      `Intensity Experimental`, `Abundance Experimental`, `PPM Error`, `Absolute Relative Error`,
+      Correlation, `Figure of Merit`, Charge, Proteoform, `Molecular Formula`,
+      `Most Abundant Isotope`, ID
+     )
 
   # If no matches, return NULL
   if (is.null(AllMatches)) {
     message("No matches detected.")
     return(NULL)
   }
-
-  # Simplify unique ID
-  AllMatches$ID <- as.numeric(as.factor(AllMatches$ID))
 
   # Add class, and return object
   class(AllMatches) <- c(class(AllMatches), "ProteoMatch_MatchedPeaks")
